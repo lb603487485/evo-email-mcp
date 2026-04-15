@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { writeFileSync } from 'fs';
 import { getGmailAuthClient } from '../auth/oauth-gmail';
 import { Email, EmailProvider, SearchQuery, Draft, Label } from './interface';
+import { buildMimeMessage, gmailTemplate } from './mime';
 
 export class GmailProvider implements EmailProvider {
   private gmail: ReturnType<typeof google.gmail>;
@@ -36,14 +37,14 @@ export class GmailProvider implements EmailProvider {
   async send(draft: Draft): Promise<void> {
     await this.gmail.users.messages.send({
       userId: 'me',
-      requestBody: { raw: buildMimeMessage(draft) },
+      requestBody: { raw: buildMimeMessage(draft, gmailTemplate) },
     });
   }
 
   async createDraft(draft: Draft): Promise<Draft> {
     await this.gmail.users.drafts.create({
       userId: 'me',
-      requestBody: { message: { raw: buildMimeMessage(draft) } },
+      requestBody: { message: { raw: buildMimeMessage(draft, gmailTemplate) } },
     });
     return draft;
   }
@@ -92,90 +93,6 @@ export class GmailProvider implements EmailProvider {
       attachments: extractAttachments(msg.payload),
     };
   }
-}
-
-function markdownToHtml(text: string): string {
-  const escaped = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  const lines = escaped.split('\n');
-  const html: string[] = [];
-  let inList = false;
-
-  for (const line of lines) {
-    // Headings
-    const h3 = line.match(/^###\s+(.+)/);
-    if (h3) { if (inList) { html.push('</ul>'); inList = false; } html.push(`<h3>${h3[1]}</h3>`); continue; }
-    const h2 = line.match(/^##\s+(.+)/);
-    if (h2) { if (inList) { html.push('</ul>'); inList = false; } html.push(`<h2>${h2[1]}</h2>`); continue; }
-    const h1 = line.match(/^#\s+(.+)/);
-    if (h1) { if (inList) { html.push('</ul>'); inList = false; } html.push(`<h1>${h1[1]}</h1>`); continue; }
-
-    // Bullet points
-    const bullet = line.match(/^[\-\*]\s+(.+)/);
-    if (bullet) {
-      if (!inList) { html.push('<ul>'); inList = true; }
-      html.push(`<li>${applyInline(bullet[1])}</li>`);
-      continue;
-    }
-
-    // Close list if we're no longer in bullets
-    if (inList) { html.push('</ul>'); inList = false; }
-
-    // Empty line = paragraph break
-    if (line.trim() === '') { html.push('<br>'); continue; }
-
-    // Regular text
-    html.push(`<p>${applyInline(line)}</p>`);
-  }
-
-  if (inList) html.push('</ul>');
-
-  return html.join('\n');
-}
-
-function applyInline(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
-}
-
-function encodeHeader(value: string): string {
-  // If all ASCII, return as-is
-  if (/^[\x00-\x7F]*$/.test(value)) return value;
-  // RFC 2047 Base64 encoding for non-ASCII
-  return `=?UTF-8?B?${Buffer.from(value, 'utf-8').toString('base64')}?=`;
-}
-
-function buildMimeMessage(draft: Draft): string {
-  const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
-  const boundary = `boundary_${Date.now()}`;
-  const htmlBody = markdownToHtml(draft.body);
-
-  const mime = [
-    `From: ${draft.from}`,
-    `To: ${to}`,
-    `Subject: ${encodeHeader(draft.subject)}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/plain; charset=UTF-8`,
-    ``,
-    draft.body,
-    ``,
-    `--${boundary}`,
-    `Content-Type: text/html; charset=UTF-8`,
-    ``,
-    `<html><body style="font-family: sans-serif; font-size: 14px; line-height: 1.5; color: #333;">`,
-    htmlBody,
-    `</body></html>`,
-    ``,
-    `--${boundary}--`,
-  ].join('\r\n');
-  return Buffer.from(mime).toString('base64url');
 }
 
 function parseAddress(raw: string): { name?: string; email: string } {
