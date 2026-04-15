@@ -176,15 +176,22 @@ export async function handleTool(
       approvedDrafts.add(draftKey(draft.from, draft.to, draft.subject));
 
       return [
-        '--- DRAFT PREVIEW ---',
+        '========================================',
+        '         EMAIL DRAFT PREVIEW',
+        '========================================',
+        '',
         `From:    ${draft.from} (${fromAccount.nickname})`,
         `To:      ${to}`,
         `Subject: ${draft.subject}`,
         '',
-        draft.body,
-        '--- END DRAFT ---',
+        '----------------------------------------',
         '',
-        'Reply "send" to send, or describe changes to revise.',
+        draft.body,
+        '',
+        '========================================',
+        '',
+        'IMPORTANT: Show the FULL preview above to the user including From, To, and Subject before sending.',
+        'Ask the user: "Ready to send?" and wait for explicit approval.',
       ].join('\n');
     }
 
