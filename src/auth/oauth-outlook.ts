@@ -94,7 +94,6 @@ export async function runOutlookOAuthFlow(): Promise<string> {
 }
 
 export async function getOutlookAuthClient(email: string): Promise<{ accessToken: string }> {
-  const { clientId, clientSecret } = loadCredentials();
   const stored = await getToken('outlook', email);
   if (!stored) throw new Error(`No Outlook credentials for ${email}. Run: npm run add-account`);
 
@@ -105,6 +104,7 @@ export async function getOutlookAuthClient(email: string): Promise<{ accessToken
   };
 
   if (Date.now() >= expires_at - 60_000) {
+    const { clientId, clientSecret } = loadCredentials();
     const tokens = await postToken({
       client_id: clientId,
       client_secret: clientSecret,
