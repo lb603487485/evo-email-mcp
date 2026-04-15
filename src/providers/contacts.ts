@@ -244,8 +244,9 @@ async function outlookUpdateContact(accountEmail: string, fields: ContactFields)
   };
 
   // Find contact by email
+  const safeEmail = fields.email.replace(/'/g, "''");
   const searchRes = await fetch(
-    `https://graph.microsoft.com/v1.0/me/contacts?$filter=emailAddresses/any(e:e/address eq '${fields.email}')&$top=1`,
+    `https://graph.microsoft.com/v1.0/me/contacts?$filter=emailAddresses/any(e:e/address eq '${safeEmail}')&$top=1`,
     { headers }
   );
   if (!searchRes.ok) throw new Error(`Contact search failed: ${await searchRes.text()}`);
