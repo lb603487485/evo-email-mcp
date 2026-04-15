@@ -1,0 +1,28 @@
+{
+  "name": "evo-email-mcp",
+  "version": "1.0.0",
+  "description": "Multi-provider email MCP server for Claude",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "add-account": "ts-node scripts/add-account.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke-test": "ts-node scripts/smoke-test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "@inquirer/prompts": "^5.0.0",
+    "commander": "^12.0.0",
+    "googleapis": "^140.0.0",
+    "keytar": "^7.9.0",
+    "open": "^9.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
