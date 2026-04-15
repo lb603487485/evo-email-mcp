@@ -4,6 +4,102 @@ import { getProvider } from './factory';
 import { Draft } from './providers/interface';
 import { lookupContact, createContact, updateContact } from './providers/contacts';
 
+type PermissionCategory = 'emailWrite' | 'contactWrite' | 'labelWrite';
+
+const TOOL_CATEGORIES: Record<string, PermissionCategory> = {
+  'email_draft': 'emailWrite',
+  'email_send': 'emailWrite',
+  'email_create_contact': 'contactWrite',
+  'email_update_contact': 'contactWrite',
+  'email_apply_label': 'labelWrite',
+};
+
+// Tracks pending confirmations for confirm-mode write tools (not emailWrite)
+const pendingConfirmations = new Map<string, number>(); // key → timestamp
+
+const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function confirmationKey(name: string, args: Record<string, unknown>): string {
+  return JSON.stringify({ name, args });
+}
+
+function cleanStaleConfirmations(): void {
+  const now = Date.now();
+  for (const [key, timestamp] of pendingConfirmations) {
+    if (now - timestamp > CONFIRMATION_TTL_MS) pendingConfirmations.delete(key);
+  }
+}
+
+function generatePreview(name: string, args: Record<string, unknown>, config: ReturnType<typeof loadConfig>): string {
+  switch (name) {
+    case 'email_create_contact': {
+      const { account, name: contactName, email, phone, company, title } = args as {
+        account: string; name: string; email: string;
+        phone?: string; company?: string; title?: string;
+      };
+      const acc = getAccount(config, account);
+      const fields = [
+        `Action:  Create`,
+        `Account: ${acc.email}`,
+        `Name:    ${contactName}`,
+        `Email:   ${email}`,
+        ...(phone ? [`Phone:   ${phone}`] : []),
+        ...(company ? [`Company: ${company}`] : []),
+        ...(title ? [`Title:   ${title}`] : []),
+      ];
+      return [
+        '========================================',
+        '      CONTACT PREVIEW',
+        '========================================',
+        '',
+        ...fields,
+        '',
+        '========================================',
+        '',
+        'Call email_create_contact again with the same parameters to confirm.',
+      ].join('\n');
+    }
+
+    case 'email_update_contact': {
+      const { account, query, name: newName, phone, company, title } = args as {
+        account: string; query: string;
+        name?: string; phone?: string; company?: string; title?: string;
+      };
+      const acc = getAccount(config, account);
+      const changes: string[] = [];
+      if (newName) changes.push(`name → ${newName}`);
+      if (phone) changes.push(`phone → ${phone}`);
+      if (company) changes.push(`company → ${company}`);
+      if (title) changes.push(`title → ${title}`);
+      return [
+        '========================================',
+        '      CONTACT UPDATE PREVIEW',
+        '========================================',
+        '',
+        `Action:  Update`,
+        `Account: ${acc.email}`,
+        `Query:   ${query}`,
+        `Changes: ${changes.join(', ')}`,
+        '',
+        '========================================',
+        '',
+        'Call email_update_contact again with the same parameters to confirm.',
+      ].join('\n');
+    }
+
+    case 'email_apply_label': {
+      const { id, account, label, action } = args as {
+        id: string; account: string; label: string; action: string;
+      };
+      const acc = getAccount(config, account);
+      return `Will ${action} label "${label}" ${action === 'add' ? 'to' : 'from'} email ${id} in ${acc.email} account.\nCall email_apply_label again with the same parameters to confirm.`;
+    }
+
+    default:
+      return `Confirm this action by calling ${name} again with the same parameters.`;
+  }
+}
+
 export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: 'email_search',
@@ -177,6 +273,27 @@ export async function handleTool(
 ): Promise<string> {
   const config = loadConfig();
 
+  // Permission middleware
+  const category = TOOL_CATEGORIES[name];
+  if (category) {
+    const level = config.permissions[category];
+    if (level === 'blocked') {
+      return `This action is disabled (${category}: blocked). Use email_set_config to change.`;
+    }
+    // emailWrite uses draft+send flow for confirmation, not the generic pattern
+    if (category !== 'emailWrite' && level === 'confirm') {
+      cleanStaleConfirmations();
+      const key = confirmationKey(name, args);
+      if (pendingConfirmations.has(key)) {
+        pendingConfirmations.delete(key);
+        // Fall through to execute
+      } else {
+        pendingConfirmations.set(key, Date.now());
+        return generatePreview(name, args, config);
+      }
+    }
+  }
+
   switch (name) {
     case 'email_search': {
       const { query, account, max_results, category } = args as {
@@ -261,15 +378,12 @@ export async function handleTool(
     }
 
     case 'email_send': {
-      if (config.sendMode === 'blocked') {
-        return 'Sending is disabled (sendMode: blocked). Use email_set_config to change.';
-      }
       const draft = args as unknown as Draft;
       const key = draftKey(draft.from, draft.to, draft.subject);
       const savedDraft = approvedDrafts.get(key);
 
       // In confirm mode, require email_draft to have been called first
-      if (config.sendMode === 'confirm' && !savedDraft) {
+      if (config.permissions.emailWrite === 'confirm' && !savedDraft) {
         return 'Cannot send: email_draft must be called first in confirm mode. Call email_draft to preview, then email_send after user approval.';
       }
 
@@ -278,11 +392,9 @@ export async function handleTool(
       const provider = await getProvider(fromAccount);
 
       if (savedDraft) {
-        // Send the existing draft by ID (no orphan drafts)
         await provider.sendDraft(savedDraft.draftId);
         approvedDrafts.delete(key);
       } else {
-        // Auto mode without prior draft — send directly
         await provider.send(draft);
       }
 
@@ -365,9 +477,28 @@ export async function handleTool(
 
     case 'email_set_config': {
       const { key, value } = args as { key: string; value: string };
-      (config as any)[key] = value;
-      saveConfig(config);
-      return `Config updated: ${key} = ${value}`;
+      const validPermissions = ['emailWrite', 'contactWrite', 'labelWrite'];
+      const validLevels = ['auto', 'confirm', 'blocked'];
+
+      // Support old sendMode key for backwards compatibility
+      const permKey = key === 'sendMode' ? 'emailWrite' : key;
+
+      if (validPermissions.includes(permKey)) {
+        if (!validLevels.includes(value)) {
+          return `Invalid value "${value}". Must be one of: ${validLevels.join(', ')}`;
+        }
+        config.permissions[permKey as keyof typeof config.permissions] = value as any;
+        saveConfig(config);
+        return `Permission updated: ${permKey} = ${value}`;
+      }
+
+      if (key === 'defaultMaxResults') {
+        config.defaultMaxResults = parseInt(value, 10);
+        saveConfig(config);
+        return `Config updated: ${key} = ${value}`;
+      }
+
+      return `Unknown config key: ${key}. Valid keys: ${validPermissions.join(', ')}, defaultMaxResults`;
     }
 
     default:
