@@ -1,12 +1,18 @@
 {
   "name": "evo-email-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Multi-provider email MCP server for Claude",
   "repository": {
     "type": "git",
     "url": "https://github.com/lb603487485/evo-email-mcp.git"
   },
-  "keywords": ["mcp", "email", "gmail", "outlook", "claude"],
+  "keywords": [
+    "mcp",
+    "email",
+    "gmail",
+    "outlook",
+    "claude"
+  ],
   "main": "dist/server.js",
   "bin": {
     "evo-email-mcp": "dist/server.js",
