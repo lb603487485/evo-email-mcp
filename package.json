@@ -7,6 +7,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "add-account": "ts-node scripts/add-account.ts",
+    "remove-account": "ts-node scripts/remove-account.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke-test": "ts-node scripts/smoke-test.ts"
