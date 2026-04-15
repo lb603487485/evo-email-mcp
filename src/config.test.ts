@@ -6,7 +6,7 @@ describe('loadConfig', () => {
     vi.resetModules();
   });
 
-  it('returns default config when file does not exist', async () => {
+  it('returns default config with permissions when file does not exist', async () => {
     vi.doMock('./paths', () => ({
       getConfigPath: () => '/tmp/evo-email-mcp-nonexistent-test.json',
       ensureConfigHome: vi.fn(),
@@ -17,14 +17,51 @@ describe('loadConfig', () => {
     });
     const { loadConfig } = await import('./config');
     const config = loadConfig();
-    expect(config.sendMode).toBe('confirm');
+    expect(config.permissions).toEqual({
+      emailWrite: 'confirm',
+      contactWrite: 'auto',
+      labelWrite: 'auto',
+    });
     expect(config.accounts).toEqual({});
+    expect((config as any).sendMode).toBeUndefined();
+  });
+
+  it('migrates old sendMode to permissions', async () => {
+    const oldConfig = JSON.stringify({
+      sendMode: 'auto',
+      defaultMaxResults: 20,
+      accounts: {},
+    });
+    let savedConfig: string | undefined;
+    vi.doMock('./paths', () => ({
+      getConfigPath: () => '/tmp/evo-email-mcp-migrate-test.json',
+      ensureConfigHome: vi.fn(),
+    }));
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: () => true,
+        readFileSync: () => oldConfig,
+        writeFileSync: (_path: string, data: string) => { savedConfig = data; },
+      };
+    });
+    const { loadConfig } = await import('./config');
+    const config = loadConfig();
+    expect(config.permissions.emailWrite).toBe('auto');
+    expect(config.permissions.contactWrite).toBe('auto');
+    expect(config.permissions.labelWrite).toBe('auto');
+    expect((config as any).sendMode).toBeUndefined();
+    expect(savedConfig).toBeDefined();
+    const saved = JSON.parse(savedConfig!);
+    expect(saved.sendMode).toBeUndefined();
+    expect(saved.permissions).toBeDefined();
   });
 });
 
 describe('getAccount', () => {
   const config = {
-    sendMode: 'confirm' as const,
+    permissions: { emailWrite: 'confirm' as const, contactWrite: 'auto' as const, labelWrite: 'auto' as const },
     defaultMaxResults: 20,
     accounts: { work: { email: 'work@gmail.com', provider: 'gmail' as const } },
   };
@@ -45,7 +82,7 @@ describe('getAccount', () => {
 describe('listAccounts', () => {
   it('returns accounts with nickname attached', () => {
     const config = {
-      sendMode: 'confirm' as const,
+      permissions: { emailWrite: 'confirm' as const, contactWrite: 'auto' as const, labelWrite: 'auto' as const },
       defaultMaxResults: 20,
       accounts: { work: { email: 'work@gmail.com', provider: 'gmail' as const } },
     };
