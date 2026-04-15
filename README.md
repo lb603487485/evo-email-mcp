@@ -32,13 +32,13 @@ All user data (config, credentials) is stored in `~/.evo-email-mcp/`.
 
 **Gmail:**
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a project, enable **Gmail API** and **People API**
+2. Create a project, enable **Gmail API**, **People API**, and **Contacts API**
 3. Create OAuth credentials (Desktop app)
 4. Download JSON and save as `~/.evo-email-mcp/credentials/gmail.json`
 
 **Outlook:**
 1. Go to [portal.azure.com](https://portal.azure.com) > App registrations
-2. Create an app, add **Mail.ReadWrite**, **Mail.Send**, **User.Read**, **People.Read** permissions
+2. Create an app, add **Mail.ReadWrite**, **Mail.Send**, **User.Read**, **People.Read**, **Contacts.ReadWrite**, **offline_access** (delegated permissions)
 3. Add a Web redirect URI: `http://localhost:3001/oauth/callback`
 4. Create a client secret
 5. Save to `~/.evo-email-mcp/credentials/outlook.json`:
