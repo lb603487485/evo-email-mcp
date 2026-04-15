@@ -48,7 +48,9 @@ export interface EmailProvider {
   search(query: SearchQuery): Promise<Email[]>;
   getEmail(id: string): Promise<Email>;
   send(draft: Draft): Promise<void>;
-  createDraft(draft: Draft): Promise<Draft>;
+  createDraft(draft: Draft): Promise<string>;
+  sendDraft(draftId: string): Promise<void>;
+  deleteDraft(draftId: string): Promise<void>;
   listLabels(): Promise<Label[]>;
   applyLabel(id: string, label: string, action: 'add' | 'remove'): Promise<void>;
   downloadAttachment(emailId: string, attachmentId: string, savePath: string): Promise<void>;

@@ -99,18 +99,39 @@ export class OutlookProvider implements EmailProvider {
     });
   }
 
-  async createDraft(draft: Draft): Promise<Draft> {
+  async createDraft(draft: Draft): Promise<string> {
     const to = Array.isArray(draft.to) ? draft.to : [draft.to];
     const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc : [draft.cc]) : [];
     const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc : [draft.bcc]) : [];
-    await this.graphPost('/me/messages', {
-      subject: draft.subject,
-      body: { contentType: isHtml(draft.body) ? 'HTML' : 'Text', content: draft.body },
-      toRecipients: to.map(a => ({ emailAddress: { address: a } })),
-      ...(cc.length && { ccRecipients: cc.map(a => ({ emailAddress: { address: a } })) }),
-      ...(bcc.length && { bccRecipients: bcc.map(a => ({ emailAddress: { address: a } })) }),
+    const res = await fetch(`https://graph.microsoft.com/v1.0/me/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subject: draft.subject,
+        body: { contentType: isHtml(draft.body) ? 'HTML' : 'Text', content: draft.body },
+        toRecipients: to.map(a => ({ emailAddress: { address: a } })),
+        ...(cc.length && { ccRecipients: cc.map(a => ({ emailAddress: { address: a } })) }),
+        ...(bcc.length && { bccRecipients: bcc.map(a => ({ emailAddress: { address: a } })) }),
+      }),
     });
-    return draft;
+    if (!res.ok) throw new Error(`Graph API error ${res.status}: ${await res.text()}`);
+    const data = await res.json() as { id: string };
+    return data.id;
+  }
+
+  async sendDraft(messageId: string): Promise<void> {
+    await this.graphPost(`/me/messages/${messageId}/send`, {});
+  }
+
+  async deleteDraft(messageId: string): Promise<void> {
+    const res = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!res.ok) throw new Error(`Graph API error ${res.status}: ${await res.text()}`);
   }
 
   async listLabels(): Promise<Label[]> {

@@ -135,18 +135,18 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'email_update_contact',
-    description: 'Update an existing contact identified by email address. Provide only the fields to change. IMPORTANT: account is required — ask the user which account if not specified.',
+    description: 'Update an existing contact identified by name or email address. Provide only the fields to change. IMPORTANT: account is required — ask the user which account if not specified. NOTE: Deleting contacts is not supported — if the user asks, let them know and suggest they delete it manually at contacts.google.com (Gmail) or outlook.live.com/people (Outlook).',
     inputSchema: {
       type: 'object',
       properties: {
         account: { type: 'string', description: 'Account nickname or email (required)' },
-        email: { type: 'string', description: 'Email address of the contact to update' },
+        query: { type: 'string', description: 'Name or email address of the contact to find' },
         name: { type: 'string', description: 'New display name (optional)' },
         phone: { type: 'string', description: 'New phone number (optional)' },
         company: { type: 'string', description: 'New company name (optional)' },
         title: { type: 'string', description: 'New job title (optional)' },
       },
-      required: ['account', 'email'],
+      required: ['account', 'query'],
     },
   },
   {
@@ -163,8 +163,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
 ];
 
-// Tracks drafts that have been previewed (keyed by "from|to|subject" to match send to draft)
-const approvedDrafts = new Set<string>();
+// Tracks drafts that have been previewed (keyed by "from|to|subject")
+const approvedDrafts = new Map<string, { draftId: string; account: string }>();
 
 function draftKey(from: string, to: string | string[], subject: string): string {
   const toStr = Array.isArray(to) ? to.sort().join(',') : to;
@@ -221,14 +221,14 @@ export async function handleTool(
 
       // Save draft to mailbox
       const provider = await getProvider(fromAccount);
-      await provider.createDraft(draft);
+      const draftId = await provider.createDraft(draft);
 
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
       const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc.join(', ') : draft.cc) : '';
       const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc.join(', ') : draft.bcc) : '';
 
-      // Register this draft as previewed
-      approvedDrafts.add(draftKey(draft.from, draft.to, draft.subject));
+      // Register this draft with its ID for send-by-draft
+      approvedDrafts.set(draftKey(draft.from, draft.to, draft.subject), { draftId, account: draft.from });
 
       return [
         '========================================',
@@ -257,20 +257,27 @@ export async function handleTool(
         return 'Sending is disabled (sendMode: blocked). Use email_set_config to change.';
       }
       const draft = args as unknown as Draft;
+      const key = draftKey(draft.from, draft.to, draft.subject);
+      const savedDraft = approvedDrafts.get(key);
 
       // In confirm mode, require email_draft to have been called first
-      if (config.sendMode === 'confirm') {
-        const key = draftKey(draft.from, draft.to, draft.subject);
-        if (!approvedDrafts.has(key)) {
-          return 'Cannot send: email_draft must be called first in confirm mode. Call email_draft to preview, then email_send after user approval.';
-        }
-        approvedDrafts.delete(key);
+      if (config.sendMode === 'confirm' && !savedDraft) {
+        return 'Cannot send: email_draft must be called first in confirm mode. Call email_draft to preview, then email_send after user approval.';
       }
 
       const fromAccount = Object.values(config.accounts).find(a => a.email === draft.from);
       if (!fromAccount) throw new Error(`No registered account for: ${draft.from}`);
       const provider = await getProvider(fromAccount);
-      await provider.send(draft);
+
+      if (savedDraft) {
+        // Send the existing draft by ID (no orphan drafts)
+        await provider.sendDraft(savedDraft.draftId);
+        approvedDrafts.delete(key);
+      } else {
+        // Auto mode without prior draft — send directly
+        await provider.send(draft);
+      }
+
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
       return `Sent from ${draft.from} to ${to}`;
     }
@@ -336,16 +343,16 @@ export async function handleTool(
     }
 
     case 'email_update_contact': {
-      const { account, email, name, phone, company, title } = args as {
-        account: string; email: string;
+      const { account, query, name, phone, company, title } = args as {
+        account: string; query: string;
         name?: string; phone?: string; company?: string; title?: string;
       };
       if (!name && !phone && !company && !title) {
         return 'Provide at least one field to update (name, phone, company, or title).';
       }
       const acc = getAccount(config, account);
-      await updateContact(acc, { email, name, phone, company, title });
-      return `Contact <${email}> updated in ${acc.email}.`;
+      await updateContact(acc, { query, name, phone, company, title });
+      return `Contact matching "${query}" updated in ${acc.email}.`;
     }
 
     case 'email_set_config': {

@@ -41,12 +41,26 @@ export class GmailProvider implements EmailProvider {
     });
   }
 
-  async createDraft(draft: Draft): Promise<Draft> {
-    await this.gmail.users.drafts.create({
+  async createDraft(draft: Draft): Promise<string> {
+    const res = await this.gmail.users.drafts.create({
       userId: 'me',
       requestBody: { message: { raw: buildMimeMessage(draft) } },
     });
-    return draft;
+    return res.data.id!;
+  }
+
+  async sendDraft(draftId: string): Promise<void> {
+    await this.gmail.users.drafts.send({
+      userId: 'me',
+      requestBody: { id: draftId },
+    });
+  }
+
+  async deleteDraft(draftId: string): Promise<void> {
+    await this.gmail.users.drafts.delete({
+      userId: 'me',
+      id: draftId,
+    });
   }
 
   async listLabels(): Promise<Label[]> {
