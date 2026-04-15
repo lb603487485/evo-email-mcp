@@ -2,7 +2,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig, saveConfig, getAccount, listAccounts } from './config';
 import { getProvider } from './factory';
 import { Draft } from './providers/interface';
-import { lookupContact } from './providers/contacts';
+import { lookupContact, createContact, updateContact } from './providers/contacts';
 
 export const TOOL_DEFINITIONS: Tool[] = [
   {
@@ -115,6 +115,38 @@ export const TOOL_DEFINITIONS: Tool[] = [
         account: { type: 'string', description: 'Account nickname or email to search contacts from. Omit to search all accounts.' },
       },
       required: ['name'],
+    },
+  },
+  {
+    name: 'email_create_contact',
+    description: 'Create a new contact in a specific account. IMPORTANT: account is required — ask the user which account if not specified.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account: { type: 'string', description: 'Account nickname or email (required)' },
+        name: { type: 'string', description: 'Contact display name' },
+        email: { type: 'string', description: 'Contact email address' },
+        phone: { type: 'string', description: 'Phone number (optional)' },
+        company: { type: 'string', description: 'Company name (optional)' },
+        title: { type: 'string', description: 'Job title (optional)' },
+      },
+      required: ['account', 'name', 'email'],
+    },
+  },
+  {
+    name: 'email_update_contact',
+    description: 'Update an existing contact identified by email address. Provide only the fields to change. IMPORTANT: account is required — ask the user which account if not specified.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account: { type: 'string', description: 'Account nickname or email (required)' },
+        email: { type: 'string', description: 'Email address of the contact to update' },
+        name: { type: 'string', description: 'New display name (optional)' },
+        phone: { type: 'string', description: 'New phone number (optional)' },
+        company: { type: 'string', description: 'New company name (optional)' },
+        title: { type: 'string', description: 'New job title (optional)' },
+      },
+      required: ['account', 'email'],
     },
   },
   {
@@ -287,6 +319,29 @@ export async function handleTool(
         return `No contacts found matching "${contactName}".`;
       }
       return JSON.stringify(allResults, null, 2);
+    }
+
+    case 'email_create_contact': {
+      const { account, ...fields } = args as {
+        account: string; name: string; email: string;
+        phone?: string; company?: string; title?: string;
+      };
+      const acc = getAccount(config, account);
+      await createContact(acc, fields);
+      return `Contact "${fields.name}" <${fields.email}> created in ${acc.email}.`;
+    }
+
+    case 'email_update_contact': {
+      const { account, email, name, phone, company, title } = args as {
+        account: string; email: string;
+        name?: string; phone?: string; company?: string; title?: string;
+      };
+      if (!name && !phone && !company && !title) {
+        return 'Provide at least one field to update (name, phone, company, or title).';
+      }
+      const acc = getAccount(config, account);
+      await updateContact(acc, { email, name, phone, company, title });
+      return `Contact <${email}> updated in ${acc.email}.`;
     }
 
     case 'email_set_config': {
