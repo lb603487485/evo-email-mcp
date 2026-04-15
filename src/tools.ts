@@ -20,7 +20,7 @@ const pendingConfirmations = new Map<string, number>(); // key → timestamp
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function confirmationKey(name: string, args: Record<string, unknown>): string {
-  return JSON.stringify({ name, args });
+  return JSON.stringify({ name, args: Object.fromEntries(Object.entries(args).sort()) });
 }
 
 function cleanStaleConfirmations(): void {
@@ -40,7 +40,7 @@ function generatePreview(name: string, args: Record<string, unknown>, config: Re
       const acc = getAccount(config, account);
       const fields = [
         `Action:  Create`,
-        `Account: ${acc.email}`,
+        `Account: ${account} (${acc.email})`,
         `Name:    ${contactName}`,
         `Email:   ${email}`,
         ...(phone ? [`Phone:   ${phone}`] : []),
@@ -77,7 +77,7 @@ function generatePreview(name: string, args: Record<string, unknown>, config: Re
         '========================================',
         '',
         `Action:  Update`,
-        `Account: ${acc.email}`,
+        `Account: ${account} (${acc.email})`,
         `Query:   ${query}`,
         `Changes: ${changes.join(', ')}`,
         '',
@@ -92,7 +92,7 @@ function generatePreview(name: string, args: Record<string, unknown>, config: Re
         id: string; account: string; label: string; action: string;
       };
       const acc = getAccount(config, account);
-      return `Will ${action} label "${label}" ${action === 'add' ? 'to' : 'from'} email ${id} in ${acc.email} account.\nCall email_apply_label again with the same parameters to confirm.`;
+      return `Will ${action} label "${label}" ${action === 'add' ? 'to' : 'from'} email ${id} in ${account} (${acc.email}) account.\nCall email_apply_label again with the same parameters to confirm.`;
     }
 
     default:
