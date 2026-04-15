@@ -3,6 +3,7 @@ import { select, input } from '@inquirer/prompts';
 import { loadConfig, saveConfig } from '../src/config';
 import { runGmailOAuthFlow } from '../src/auth/oauth-gmail';
 import { runOutlookOAuthFlow } from '../src/auth/oauth-outlook';
+import type { ProviderName } from '../src/providers/interface';
 
 program
   .option('--provider <provider>', 'gmail | outlook | imap')
@@ -47,7 +48,7 @@ async function main() {
   });
 
   const config = loadConfig();
-  config.accounts[nickname] = { email, provider: provider as 'gmail' | 'outlook' };
+  config.accounts[nickname] = { email, provider: provider as ProviderName };
   saveConfig(config);
 
   console.log(`\nAccount registered: ${nickname} (${email})`);
