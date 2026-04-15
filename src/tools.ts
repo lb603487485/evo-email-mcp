@@ -142,7 +142,7 @@ export async function handleTool(
     }
 
     case 'draft_email': {
-      const draft = args as Draft;
+      const draft = args as unknown as Draft;
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
       return [
         '--- DRAFT PREVIEW ---',
@@ -161,7 +161,7 @@ export async function handleTool(
       if (config.sendMode === 'blocked') {
         return 'Sending is disabled (sendMode: blocked). Use set_config to change.';
       }
-      const draft = args as Draft;
+      const draft = args as unknown as Draft;
       const fromAccount = Object.values(config.accounts).find(a => a.email === draft.from);
       if (!fromAccount) throw new Error(`No registered account for: ${draft.from}`);
       const provider = await getProvider(fromAccount);
