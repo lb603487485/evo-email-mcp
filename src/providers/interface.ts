@@ -49,6 +49,7 @@ export interface EmailProvider {
   getEmail(id: string): Promise<Email>;
   send(draft: Draft): Promise<void>;
   createDraft(draft: Draft): Promise<string>;
+  updateDraft(draftId: string, draft: Draft): Promise<void>;
   sendDraft(draftId: string): Promise<void>;
   deleteDraft(draftId: string): Promise<void>;
   listLabels(): Promise<Label[]>;

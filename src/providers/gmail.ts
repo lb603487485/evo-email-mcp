@@ -49,6 +49,14 @@ export class GmailProvider implements EmailProvider {
     return res.data.id!;
   }
 
+  async updateDraft(draftId: string, draft: Draft): Promise<void> {
+    await this.gmail.users.drafts.update({
+      userId: 'me',
+      id: draftId,
+      requestBody: { message: { raw: buildMimeMessage(draft) } },
+    });
+  }
+
   async sendDraft(draftId: string): Promise<void> {
     await this.gmail.users.drafts.send({
       userId: 'me',

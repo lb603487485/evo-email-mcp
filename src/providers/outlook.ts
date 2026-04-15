@@ -122,6 +122,19 @@ export class OutlookProvider implements EmailProvider {
     return data.id;
   }
 
+  async updateDraft(messageId: string, draft: Draft): Promise<void> {
+    const to = Array.isArray(draft.to) ? draft.to : [draft.to];
+    const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc : [draft.cc]) : [];
+    const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc : [draft.bcc]) : [];
+    await this.graphPatch(`/me/messages/${messageId}`, {
+      subject: draft.subject,
+      body: { contentType: isHtml(draft.body) ? 'HTML' : 'Text', content: draft.body },
+      toRecipients: to.map(a => ({ emailAddress: { address: a } })),
+      ...(cc.length && { ccRecipients: cc.map(a => ({ emailAddress: { address: a } })) }),
+      ...(bcc.length && { bccRecipients: bcc.map(a => ({ emailAddress: { address: a } })) }),
+    });
+  }
+
   async sendDraft(messageId: string): Promise<void> {
     await this.graphPost(`/me/messages/${messageId}/send`, {});
   }

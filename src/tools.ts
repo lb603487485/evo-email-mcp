@@ -219,9 +219,17 @@ export async function handleTool(
         ].join('\n');
       }
 
-      // Save draft to mailbox
+      // Update existing draft or create new one
       const provider = await getProvider(fromAccount);
-      const draftId = await provider.createDraft(draft);
+      const key = draftKey(draft.from, draft.to, draft.subject);
+      const existingDraft = approvedDrafts.get(key);
+      let draftId: string;
+      if (existingDraft) {
+        await provider.updateDraft(existingDraft.draftId, draft);
+        draftId = existingDraft.draftId;
+      } else {
+        draftId = await provider.createDraft(draft);
+      }
 
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
       const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc.join(', ') : draft.cc) : '';
