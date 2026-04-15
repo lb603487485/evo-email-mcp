@@ -74,7 +74,7 @@ export class OutlookProvider implements EmailProvider {
   async search(query: SearchQuery): Promise<Email[]> {
     const top = query.maxResults ?? 20;
     const data = await this.graphGet<{ value: GraphMessage[] }>(
-      `/me/messages?$search="${encodeURIComponent(query.q)}"&$top=${top}`
+      `/me/messages?$search="${query.q}"&$top=${top}`
     );
     return (data.value ?? []).map(m => this.parseMessage(m));
   }

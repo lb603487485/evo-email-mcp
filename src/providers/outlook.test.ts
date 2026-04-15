@@ -39,7 +39,7 @@ describe('OutlookProvider.search', () => {
     mockFetch.mockResolvedValue(mockOk({ value: [] }));
     await provider.search({ q: 'is:unread', maxResults: 5 });
     const url: string = mockFetch.mock.calls[0][0];
-    expect(url).toContain('is%3Aunread');
+    expect(url).toContain('is:unread');
     expect(url).toContain('$top=5');
   });
 
@@ -173,6 +173,10 @@ describe('OutlookProvider.downloadAttachment', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/me/messages/msg1/attachments/att1'),
       expect.anything()
+    );
+    expect(writeFileSyncMock).toHaveBeenCalledWith(
+      '/tmp/file.txt',
+      Buffer.from('hello')
     );
   });
 });
