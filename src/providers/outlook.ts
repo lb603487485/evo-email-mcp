@@ -139,14 +139,6 @@ export class OutlookProvider implements EmailProvider {
     await this.graphPost(`/me/messages/${messageId}/send`, {});
   }
 
-  async deleteDraft(messageId: string): Promise<void> {
-    const res = await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${this.accessToken}` },
-    });
-    if (!res.ok) throw new Error(`Graph API error ${res.status}: ${await res.text()}`);
-  }
-
   async listLabels(): Promise<Label[]> {
     const data = await this.graphGet<{ value: Array<{ id: string; displayName: string }> }>('/me/mailFolders');
     return (data.value ?? []).map(f => ({ id: f.id, name: f.displayName }));

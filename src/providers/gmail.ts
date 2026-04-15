@@ -64,13 +64,6 @@ export class GmailProvider implements EmailProvider {
     });
   }
 
-  async deleteDraft(draftId: string): Promise<void> {
-    await this.gmail.users.drafts.delete({
-      userId: 'me',
-      id: draftId,
-    });
-  }
-
   async listLabels(): Promise<Label[]> {
     const res = await this.gmail.users.labels.list({ userId: 'me' });
     return (res.data.labels ?? []).map(l => ({ id: l.id!, name: l.name! }));

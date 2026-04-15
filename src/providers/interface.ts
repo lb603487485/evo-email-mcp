@@ -51,7 +51,6 @@ export interface EmailProvider {
   createDraft(draft: Draft): Promise<string>;
   updateDraft(draftId: string, draft: Draft): Promise<void>;
   sendDraft(draftId: string): Promise<void>;
-  deleteDraft(draftId: string): Promise<void>;
   listLabels(): Promise<Label[]>;
   applyLabel(id: string, label: string, action: 'add' | 'remove'): Promise<void>;
   downloadAttachment(emailId: string, attachmentId: string, savePath: string): Promise<void>;
