@@ -120,6 +120,8 @@ Config is hot-reloaded on every request -- no server restart needed.
 | `email_apply_label` | Apply a label to an email |
 | `email_download_attachment` | Download an attachment by ID |
 | `email_lookup_contact` | Find email address by person name |
+| `email_create_contact` | Create a new contact (name, email, phone, company, title) |
+| `email_update_contact` | Update an existing contact by email address |
 | `email_list_accounts` | Show registered accounts |
 | `email_set_config` | Change settings via Claude |
 
