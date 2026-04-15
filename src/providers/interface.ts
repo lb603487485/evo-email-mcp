@@ -66,8 +66,16 @@ export interface AccountConfig {
   port?: number;
 }
 
+export type PermissionLevel = 'auto' | 'confirm' | 'blocked';
+
+export interface Permissions {
+  emailWrite: PermissionLevel;
+  contactWrite: PermissionLevel;
+  labelWrite: PermissionLevel;
+}
+
 export interface AppConfig {
-  sendMode: 'auto' | 'confirm' | 'blocked';
+  permissions: Permissions;
   defaultMaxResults: number;
   accounts: Record<string, AccountConfig>;
 }
