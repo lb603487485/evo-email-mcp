@@ -1,9 +1,10 @@
+#!/usr/bin/env node
 import { program } from 'commander';
 import { select, input } from '@inquirer/prompts';
-import { loadConfig, saveConfig } from '../src/config';
-import { runGmailOAuthFlow } from '../src/auth/oauth-gmail';
-import { runOutlookOAuthFlow } from '../src/auth/oauth-outlook';
-import type { ProviderName } from '../src/providers/interface';
+import { loadConfig, saveConfig } from '../config';
+import { runGmailOAuthFlow } from '../auth/oauth-gmail';
+import { runOutlookOAuthFlow } from '../auth/oauth-outlook';
+import type { ProviderName } from '../providers/interface';
 
 program
   .option('--provider <provider>', 'gmail | outlook | imap')

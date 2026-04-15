@@ -1,5 +1,5 @@
-import { loadConfig, listAccounts } from '../src/config';
-import { getProvider } from '../src/factory';
+import { loadConfig, listAccounts } from '../config';
+import { getProvider } from '../factory';
 
 async function run() {
   const config = loadConfig();

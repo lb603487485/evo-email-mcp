@@ -1,7 +1,8 @@
+#!/usr/bin/env node
 import { program } from 'commander';
 import { select } from '@inquirer/prompts';
-import { loadConfig, saveConfig, listAccounts } from '../src/config';
-import { deleteToken } from '../src/auth/keychain';
+import { loadConfig, saveConfig, listAccounts } from '../config';
+import { deleteToken } from '../auth/keychain';
 
 program
   .option('--nickname <nickname>', 'Nickname of the account to remove')
