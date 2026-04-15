@@ -163,11 +163,17 @@ async function gmailUpdateContact(accountEmail: string, fields: UpdateContactFie
   const requestBody: any = { etag: current.data.etag };
 
   if (fields.name) {
-    requestBody.names = [{ givenName: fields.name }];
+    const currentName = current.data.names?.[0] ?? {};
+    requestBody.names = [{ ...currentName, givenName: fields.name }];
     updatePersonFields.push('names');
   }
   if (fields.phone) {
-    requestBody.phoneNumbers = [{ value: fields.phone }];
+    const currentPhones = current.data.phoneNumbers ?? [];
+    if (currentPhones.length > 0) {
+      requestBody.phoneNumbers = [{ ...currentPhones[0], value: fields.phone }, ...currentPhones.slice(1)];
+    } else {
+      requestBody.phoneNumbers = [{ value: fields.phone }];
+    }
     updatePersonFields.push('phoneNumbers');
   }
   if (fields.company || fields.title) {
