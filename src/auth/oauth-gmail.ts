@@ -10,6 +10,7 @@ const REDIRECT_URI = 'http://localhost:3001/oauth/callback';
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/contacts.readonly',
 ];
 
 interface GmailCredentialsFile {

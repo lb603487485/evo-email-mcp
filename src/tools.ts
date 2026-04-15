@@ -2,6 +2,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig, saveConfig, getAccount, listAccounts } from './config';
 import { getProvider } from './factory';
 import { Draft } from './providers/interface';
+import { lookupContact } from './providers/contacts';
 
 export const TOOL_DEFINITIONS: Tool[] = [
   {
@@ -99,6 +100,18 @@ export const TOOL_DEFINITIONS: Tool[] = [
     name: 'list_accounts',
     description: 'List all registered email accounts',
     inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'lookup_contact',
+    description: 'Search contacts by name to find their email address. Use this to resolve a person\'s name to an email before drafting.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Person name to search for' },
+        account: { type: 'string', description: 'Account nickname or email to search contacts from. Omit to search all accounts.' },
+      },
+      required: ['name'],
+    },
   },
   {
     name: 'set_config',
@@ -247,6 +260,24 @@ export async function handleTool(
         listAccounts(config).map(({ nickname, email, provider }) => ({ nickname, email, provider })),
         null, 2
       );
+    }
+
+    case 'lookup_contact': {
+      const { name: contactName, account } = args as { name: string; account?: string };
+      const targets = account
+        ? [getAccount(config, account)]
+        : Object.values(config.accounts);
+      const allResults: Array<{ account: string; name: string; email: string }> = [];
+      for (const acc of targets) {
+        const contacts = await lookupContact(acc.email, contactName);
+        for (const c of contacts) {
+          allResults.push({ account: acc.email, name: c.name, email: c.email });
+        }
+      }
+      if (allResults.length === 0) {
+        return `No contacts found matching "${contactName}".`;
+      }
+      return JSON.stringify(allResults, null, 2);
     }
 
     case 'set_config': {
