@@ -51,6 +51,7 @@ Same structure as `oauth-gmail.ts`:
 | `Mail.ReadWrite` | Read, modify, delete messages |
 | `Mail.Send` | Send emails |
 | `User.Read` | Get email address after auth |
+| `People.Read` | Contact lookup (primary source) |
 | `offline_access` | Obtain refresh token |
 
 ---
@@ -112,7 +113,18 @@ One-time setup before running `npm run add-account -- --provider outlook`:
 
 ---
 
+## Contact Lookup (`lookupContact`)
+
+Same two-step pattern as Gmail:
+
+1. **Primary:** `GET /me/people?$search="<query>"&$top=10` with `People.Read` scope — returns contacts ranked by relevance
+2. **Fallback:** search email history via `GET /me/messages?$search="<query>"`, parse `from`/`to` headers — same logic as Gmail fallback (skip self, skip automated senders)
+
+Lives in `src/providers/contacts.ts` alongside the existing Gmail implementation — add an `outlookLookupContact(email, query)` export. The `email_lookup_contact` tool in `tools.ts` already routes by provider via `getProvider()`, so no tool-layer changes needed beyond wiring up the new function.
+
+---
+
 ## Out of Scope
 
-- Contacts lookup for Outlook (`Contacts.Read`) — deferred until all providers done
+- Contacts write access — deferred until all providers done
 - IMAP provider — Phase 3
