@@ -7,7 +7,7 @@ import { lookupContact } from './providers/contacts';
 export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: 'email_search',
-    description: 'Search emails across all accounts or a specific account. Defaults to primary inbox only. Set category to "all" to search promotions, social, updates too.',
+    description: 'Search emails across all accounts or a specific account. Defaults to primary inbox only. Set category to "all" to search promotions, social, updates too. IMPORTANT: If multiple accounts are registered and the user did NOT specify which account, ask the user which account to search before proceeding. Use email_list_accounts to show available accounts. Only search all accounts if the user explicitly asks to.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -21,7 +21,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'email_get',
-    description: 'Fetch full content of an email by ID',
+    description: 'Fetch full content of an email by ID. If the user did NOT specify which account, ask before proceeding.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -103,7 +103,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'email_lookup_contact',
-    description: 'Search contacts by name to find their email address. Checks Google Contacts first, then falls back to email history. Use this to resolve a person\'s name to an email before drafting.',
+    description: 'Search contacts by name to find their email address. Checks contacts API first, then falls back to email history. Use this to resolve a person\'s name to an email before drafting. IMPORTANT: If multiple accounts are registered and the user did NOT specify which account, ask the user which account to search before proceeding.',
     inputSchema: {
       type: 'object',
       properties: {
