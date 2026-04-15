@@ -3,14 +3,25 @@
   "version": "1.0.0",
   "description": "Multi-provider email MCP server for Claude",
   "main": "dist/server.js",
+  "bin": {
+    "evo-email-mcp": "dist/server.js",
+    "evo-email-add-account": "dist/cli/add-account.js",
+    "evo-email-remove-account": "dist/cli/remove-account.js"
+  },
+  "files": [
+    "dist/",
+    "config.example.json",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "add-account": "ts-node scripts/add-account.ts",
-    "remove-account": "ts-node scripts/remove-account.ts",
+    "add-account": "ts-node src/cli/add-account.ts",
+    "remove-account": "ts-node src/cli/remove-account.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke-test": "ts-node scripts/smoke-test.ts"
+    "smoke-test": "ts-node src/cli/smoke-test.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
