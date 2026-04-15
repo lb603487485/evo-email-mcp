@@ -6,13 +6,14 @@ import { Draft } from './providers/interface';
 export const TOOL_DEFINITIONS: Tool[] = [
   {
     name: 'search_emails',
-    description: 'Search emails across all accounts or a specific account',
+    description: 'Search emails across all accounts or a specific account. Defaults to primary inbox only. Set category to "all" to search promotions, social, updates too.',
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Gmail query syntax, e.g. "from:alice is:unread"' },
         account: { type: 'string', description: 'Account nickname or email. Omit to search all.' },
         max_results: { type: 'number', description: 'Max results per account (default 20)' },
+        category: { type: 'string', description: 'Gmail category filter: "primary" (default), "promotions", "social", "updates", "forums", or "all"', enum: ['primary', 'promotions', 'social', 'updates', 'forums', 'all'] },
       },
       required: ['query'],
     },
@@ -121,15 +122,17 @@ export async function handleTool(
 
   switch (name) {
     case 'search_emails': {
-      const { query, account, max_results } = args as {
-        query: string; account?: string; max_results?: number;
+      const { query, account, max_results, category } = args as {
+        query: string; account?: string; max_results?: number; category?: string;
       };
+      const cat = category ?? 'primary';
+      const fullQuery = cat === 'all' ? query : `category:${cat} ${query}`;
       const targets = account
         ? [getAccount(config, account)]
         : Object.values(config.accounts);
       const results = await Promise.all(
         targets.map(acc =>
-          getProvider(acc).then(p => p.search({ q: query, maxResults: max_results ?? config.defaultMaxResults }))
+          getProvider(acc).then(p => p.search({ q: fullQuery, maxResults: max_results ?? config.defaultMaxResults }))
         )
       );
       return JSON.stringify(results.flat(), null, 2);
