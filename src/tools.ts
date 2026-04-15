@@ -270,7 +270,7 @@ export async function handleTool(
         : Object.values(config.accounts);
       const allResults: Array<{ account: string; name: string; email: string }> = [];
       for (const acc of targets) {
-        const contacts = await lookupContact(acc.email, contactName);
+        const contacts = await lookupContact(acc, contactName);
         for (const c of contacts) {
           allResults.push({ account: acc.email, name: c.name, email: c.email });
         }
