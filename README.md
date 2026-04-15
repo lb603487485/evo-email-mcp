@@ -58,16 +58,16 @@ Edit `config.json` in the project root. Changes take effect immediately.
 
 ## Available Tools (what Claude can do)
 
-- `search_emails` - search by query, defaults to primary inbox
-- `get_email` - read full email by ID
-- `draft_email` - preview before sending
-- `send_email` - send (requires approval in confirm mode)
-- `list_labels` - list Gmail labels
-- `apply_label` - add/remove labels
-- `download_attachment` - save attachment locally
-- `lookup_contact` - find email address by person name
-- `list_accounts` - show registered accounts
-- `set_config` - change settings via Claude
+- `email_search` - search by query, defaults to primary inbox
+- `email_get` - read full email by ID
+- `email_draft` - preview before sending
+- `email_send` - send (requires approval in confirm mode)
+- `email_list_labels` - list Gmail labels
+- `email_apply_label` - add/remove labels
+- `email_download_attachment` - save attachment locally
+- `email_lookup_contact` - find email address by person name
+- `email_list_accounts` - show registered accounts
+- `email_set_config` - change settings via Claude
 
 ## Scripts
 

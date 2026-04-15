@@ -6,7 +6,7 @@ import { lookupContact } from './providers/contacts';
 
 export const TOOL_DEFINITIONS: Tool[] = [
   {
-    name: 'search_emails',
+    name: 'email_search',
     description: 'Search emails across all accounts or a specific account. Defaults to primary inbox only. Set category to "all" to search promotions, social, updates too.',
     inputSchema: {
       type: 'object',
@@ -20,7 +20,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'get_email',
+    name: 'email_get',
     description: 'Fetch full content of an email by ID',
     inputSchema: {
       type: 'object',
@@ -32,12 +32,12 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'draft_email',
-    description: 'Preview a draft before sending. REQUIRED before send_email in confirm mode. Workflow: (1) If user says a name instead of email, call lookup_contact first. (2) If user says "my work/personal/school account", match to account nickname via list_accounts. If only one account exists, use it automatically. (3) Call draft_email with resolved from and to. (4) Show the FULL preview (From, To, Subject, Body) to the user. (5) Wait for explicit approval before calling send_email. Body supports markdown: **bold**, *italic*, # headings, - bullet points.',
+    name: 'email_draft',
+    description: 'Preview a draft before sending. REQUIRED before email_send in confirm mode. Workflow: (1) If user says a name instead of email, call email_lookup_contact first. (2) If user says "my work/personal/school account", match to account nickname via email_list_accounts. If only one account exists, use it automatically. (3) Call email_draft with resolved from and to. (4) Show the FULL preview (From, To, Subject, Body) to the user. (5) Wait for explicit approval before calling email_send. Body supports markdown: **bold**, *italic*, # headings, - bullet points.',
     inputSchema: {
       type: 'object',
       properties: {
-        from: { type: 'string', description: 'Sender email address. Must be a registered account. Use list_accounts to find available accounts.' },
+        from: { type: 'string', description: 'Sender email address. Must be a registered account. Use email_list_accounts to find available accounts.' },
         to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
         subject: { type: 'string' },
         body: { type: 'string', description: 'Email body. Supports markdown: **bold**, *italic*, # headings, - bullet points.' },
@@ -46,8 +46,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'send_email',
-    description: 'Send an email. In confirm mode, draft_email MUST be called first and user MUST explicitly approve. Do NOT call this without showing the full draft preview and receiving user confirmation.',
+    name: 'email_send',
+    description: 'Send an email. In confirm mode, email_draft MUST be called first and user MUST explicitly approve. Do NOT call this without showing the full draft preview and receiving user confirmation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -60,7 +60,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'list_labels',
+    name: 'email_list_labels',
     description: 'List all labels for an account',
     inputSchema: {
       type: 'object',
@@ -69,7 +69,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'apply_label',
+    name: 'email_apply_label',
     description: 'Add or remove a label on an email',
     inputSchema: {
       type: 'object',
@@ -83,7 +83,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'download_attachment',
+    name: 'email_download_attachment',
     description: 'Save an email attachment to a local file path',
     inputSchema: {
       type: 'object',
@@ -97,13 +97,13 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'list_accounts',
+    name: 'email_list_accounts',
     description: 'List all registered email accounts',
     inputSchema: { type: 'object', properties: {} },
   },
   {
-    name: 'lookup_contact',
-    description: 'Search contacts by name to find their email address. Use this to resolve a person\'s name to an email before drafting.',
+    name: 'email_lookup_contact',
+    description: 'Search contacts by name to find their email address. Checks Google Contacts first, then falls back to email history. Use this to resolve a person\'s name to an email before drafting.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -114,7 +114,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
     },
   },
   {
-    name: 'set_config',
+    name: 'email_set_config',
     description: 'Change a runtime setting. Key: sendMode, Value: auto | confirm | blocked',
     inputSchema: {
       type: 'object',
@@ -142,7 +142,7 @@ export async function handleTool(
   const config = loadConfig();
 
   switch (name) {
-    case 'search_emails': {
+    case 'email_search': {
       const { query, account, max_results, category } = args as {
         query: string; account?: string; max_results?: number; category?: string;
       };
@@ -159,13 +159,13 @@ export async function handleTool(
       return JSON.stringify(results.flat(), null, 2);
     }
 
-    case 'get_email': {
+    case 'email_get': {
       const { id, account } = args as { id: string; account: string };
       const provider = await getProvider(getAccount(config, account));
       return JSON.stringify(await provider.getEmail(id), null, 2);
     }
 
-    case 'draft_email': {
+    case 'email_draft': {
       const draft = args as unknown as Draft;
       const accounts = listAccounts(config);
 
@@ -208,17 +208,17 @@ export async function handleTool(
       ].join('\n');
     }
 
-    case 'send_email': {
+    case 'email_send': {
       if (config.sendMode === 'blocked') {
-        return 'Sending is disabled (sendMode: blocked). Use set_config to change.';
+        return 'Sending is disabled (sendMode: blocked). Use email_set_config to change.';
       }
       const draft = args as unknown as Draft;
 
-      // In confirm mode, require draft_email to have been called first
+      // In confirm mode, require email_draft to have been called first
       if (config.sendMode === 'confirm') {
         const key = draftKey(draft.from, draft.to, draft.subject);
         if (!approvedDrafts.has(key)) {
-          return 'Cannot send: draft_email must be called first in confirm mode. Call draft_email to preview, then send_email after user approval.';
+          return 'Cannot send: email_draft must be called first in confirm mode. Call email_draft to preview, then email_send after user approval.';
         }
         approvedDrafts.delete(key);
       }
@@ -231,13 +231,13 @@ export async function handleTool(
       return `Sent from ${draft.from} to ${to}`;
     }
 
-    case 'list_labels': {
+    case 'email_list_labels': {
       const { account } = args as { account: string };
       const provider = await getProvider(getAccount(config, account));
       return JSON.stringify(await provider.listLabels(), null, 2);
     }
 
-    case 'apply_label': {
+    case 'email_apply_label': {
       const { id, account, label, action } = args as {
         id: string; account: string; label: string; action: 'add' | 'remove';
       };
@@ -246,7 +246,7 @@ export async function handleTool(
       return `Label "${label}" ${action === 'add' ? 'added to' : 'removed from'} email ${id}`;
     }
 
-    case 'download_attachment': {
+    case 'email_download_attachment': {
       const { id, attachment_id, account, save_path } = args as {
         id: string; attachment_id: string; account: string; save_path: string;
       };
@@ -255,14 +255,14 @@ export async function handleTool(
       return `Attachment saved to ${save_path}`;
     }
 
-    case 'list_accounts': {
+    case 'email_list_accounts': {
       return JSON.stringify(
         listAccounts(config).map(({ nickname, email, provider }) => ({ nickname, email, provider })),
         null, 2
       );
     }
 
-    case 'lookup_contact': {
+    case 'email_lookup_contact': {
       const { name: contactName, account } = args as { name: string; account?: string };
       const targets = account
         ? [getAccount(config, account)]
@@ -280,7 +280,7 @@ export async function handleTool(
       return JSON.stringify(allResults, null, 2);
     }
 
-    case 'set_config': {
+    case 'email_set_config': {
       const { key, value } = args as { key: string; value: string };
       (config as any)[key] = value;
       saveConfig(config);
