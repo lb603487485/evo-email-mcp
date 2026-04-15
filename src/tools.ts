@@ -114,6 +114,14 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
 ];
 
+// Tracks drafts that have been previewed (keyed by "from|to|subject" to match send to draft)
+const approvedDrafts = new Set<string>();
+
+function draftKey(from: string, to: string | string[], subject: string): string {
+  const toStr = Array.isArray(to) ? to.sort().join(',') : to;
+  return `${from}|${toStr}|${subject}`;
+}
+
 export async function handleTool(
   name: string,
   args: Record<string, unknown>
@@ -146,10 +154,30 @@ export async function handleTool(
 
     case 'draft_email': {
       const draft = args as unknown as Draft;
+      const accounts = listAccounts(config);
+
+      // Validate "from" is a registered account
+      const fromAccount = accounts.find(a => a.email === draft.from);
+      if (!fromAccount) {
+        const accountList = accounts.map(a => `  - ${a.nickname}: ${a.email}`).join('\n');
+        return [
+          `No registered account for: ${draft.from}`,
+          '',
+          'Available accounts:',
+          accountList,
+          '',
+          'Please specify which account to send from.',
+        ].join('\n');
+      }
+
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
+
+      // Register this draft as previewed
+      approvedDrafts.add(draftKey(draft.from, draft.to, draft.subject));
+
       return [
         '--- DRAFT PREVIEW ---',
-        `From:    ${draft.from}`,
+        `From:    ${draft.from} (${fromAccount.nickname})`,
         `To:      ${to}`,
         `Subject: ${draft.subject}`,
         '',
@@ -165,6 +193,16 @@ export async function handleTool(
         return 'Sending is disabled (sendMode: blocked). Use set_config to change.';
       }
       const draft = args as unknown as Draft;
+
+      // In confirm mode, require draft_email to have been called first
+      if (config.sendMode === 'confirm') {
+        const key = draftKey(draft.from, draft.to, draft.subject);
+        if (!approvedDrafts.has(key)) {
+          return 'Cannot send: draft_email must be called first in confirm mode. Call draft_email to preview, then send_email after user approval.';
+        }
+        approvedDrafts.delete(key);
+      }
+
       const fromAccount = Object.values(config.accounts).find(a => a.email === draft.from);
       if (!fromAccount) throw new Error(`No registered account for: ${draft.from}`);
       const provider = await getProvider(fromAccount);
