@@ -148,6 +148,21 @@ Config is hot-reloaded on every request -- no server restart needed.
 | `email_list_accounts` | Show registered accounts |
 | `email_set_config` | Change settings via Claude |
 
+## Uninstall
+
+```bash
+# 1. Remove accounts (clears OAuth tokens from Keychain)
+evo-email-remove-account
+
+# 2. Uninstall the package
+npm uninstall -g evo-email-mcp
+
+# 3. Remove config and credentials
+rm -rf ~/.evo-email-mcp
+```
+
+Also remove the `email` entry from your Claude Code or Claude Desktop config.
+
 ## Security
 
 - OAuth tokens are stored in macOS Keychain, never in config files
