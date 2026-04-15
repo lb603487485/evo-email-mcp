@@ -247,11 +247,11 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'email_set_config',
-    description: 'Change a runtime setting. Key: sendMode, Value: auto | confirm | blocked',
+    description: 'Change a runtime permission or setting. Permission keys: emailWrite, contactWrite, labelWrite. Values: auto | confirm | blocked. Also accepts: defaultMaxResults (number). Old key "sendMode" is accepted and maps to emailWrite.',
     inputSchema: {
       type: 'object',
       properties: {
-        key: { type: 'string' },
+        key: { type: 'string', description: 'Permission key (emailWrite, contactWrite, labelWrite) or defaultMaxResults' },
         value: { type: 'string' },
       },
       required: ['key', 'value'],

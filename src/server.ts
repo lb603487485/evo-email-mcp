@@ -13,6 +13,13 @@ const server = new Server(
     capabilities: { tools: {} },
     instructions: `Email MCP server for Gmail and Outlook accounts.
 
+Permissions: Each write category (emailWrite, contactWrite, labelWrite) has a permission level:
+- "auto": executes immediately
+- "confirm": requires confirmation (call the same tool twice with identical parameters)
+- "blocked": action is disabled
+
+For emailWrite in confirm mode, call email_draft first (saves to Drafts folder + shows preview), then email_send after user approval.
+
 IMPORTANT — No destructive operations:
 This server does NOT support deleting emails, drafts, or contacts.
 If the user asks to delete something, do NOT attempt it. Instead, guide them:

@@ -101,10 +101,33 @@ evo-email-remove-account --nickname work
 
 Config is auto-created at `~/.evo-email-mcp/config.json` on first run. Accounts are added automatically by `evo-email-add-account`. The other settings:
 
-| Key | Values | Default | Description |
-|-----|--------|---------|-------------|
-| `sendMode` | `"confirm"`, `"auto"`, `"blocked"` | `"confirm"` | `confirm` requires draft preview + approval before sending. `auto` sends immediately. `blocked` disables sending entirely. |
-| `defaultMaxResults` | number | `20` | Max emails returned per search query per account. |
+### Permissions
+
+Each write category has a permission level: `"auto"` (execute immediately), `"confirm"` (requires confirmation), or `"blocked"` (disabled).
+
+| Category | Controls | Default |
+|----------|----------|---------|
+| `emailWrite` | `email_draft`, `email_send` | `"confirm"` |
+| `contactWrite` | `email_create_contact`, `email_update_contact` | `"auto"` |
+| `labelWrite` | `email_apply_label` | `"auto"` |
+
+In confirm mode:
+- **emailWrite**: `email_draft` saves to your Drafts folder and shows a preview. Approve, then `email_send` sends it.
+- **contactWrite / labelWrite**: The tool returns a preview. Call it again with the same parameters to confirm.
+
+Example config:
+```json
+{
+  "permissions": {
+    "emailWrite": "confirm",
+    "contactWrite": "auto",
+    "labelWrite": "auto"
+  },
+  "defaultMaxResults": 20
+}
+```
+
+Old `sendMode` configs are migrated automatically on first load.
 
 Config is hot-reloaded on every request -- no server restart needed.
 
