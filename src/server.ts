@@ -9,7 +9,16 @@ import { TOOL_DEFINITIONS, handleTool } from './tools';
 
 const server = new Server(
   { name: 'evo-email-mcp', version: '1.0.0' },
-  { capabilities: { tools: {} } }
+  {
+    capabilities: { tools: {} },
+    instructions: `Email MCP server for Gmail and Outlook accounts.
+
+IMPORTANT — No destructive operations:
+This server does NOT support deleting emails, drafts, or contacts.
+If the user asks to delete something, do NOT attempt it. Instead, guide them:
+- Emails/Drafts: "You can delete this at mail.google.com (Gmail) or outlook.live.com (Outlook)"
+- Contacts: "You can delete this at contacts.google.com (Gmail) or outlook.live.com/people (Outlook)"`,
+  }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
