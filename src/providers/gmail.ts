@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { writeFileSync } from 'fs';
 import { getGmailAuthClient } from '../auth/oauth-gmail';
 import { Email, EmailProvider, SearchQuery, Draft, Label } from './interface';
-import { buildMimeMessage, gmailTemplate } from './mime';
+import { buildMimeMessage } from './mime';
 
 export class GmailProvider implements EmailProvider {
   private gmail: ReturnType<typeof google.gmail>;
@@ -37,14 +37,14 @@ export class GmailProvider implements EmailProvider {
   async send(draft: Draft): Promise<void> {
     await this.gmail.users.messages.send({
       userId: 'me',
-      requestBody: { raw: buildMimeMessage(draft, gmailTemplate) },
+      requestBody: { raw: buildMimeMessage(draft) },
     });
   }
 
   async createDraft(draft: Draft): Promise<Draft> {
     await this.gmail.users.drafts.create({
       userId: 'me',
-      requestBody: { message: { raw: buildMimeMessage(draft, gmailTemplate) } },
+      requestBody: { message: { raw: buildMimeMessage(draft) } },
     });
     return draft;
   }

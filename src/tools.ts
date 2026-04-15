@@ -33,14 +33,14 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'email_draft',
-    description: 'Preview a draft before sending. REQUIRED before email_send in confirm mode. Workflow: (1) If user says a name instead of email, call email_lookup_contact first. (2) If user says "my work/personal/school account", match to account nickname via email_list_accounts. If only one account exists, use it automatically. (3) Call email_draft with resolved from and to. (4) Show the FULL preview (From, To, Subject, Body) to the user. (5) Wait for explicit approval before calling email_send. Body supports markdown: **bold**, *italic*, # headings, - bullet points.',
+    description: 'Preview a draft before sending. REQUIRED before email_send in confirm mode. Workflow: (1) If user says a name instead of email, call email_lookup_contact first. (2) If user says "my work/personal/school account", match to account nickname via email_list_accounts. If only one account exists, use it automatically. (3) IMPORTANT: If multiple accounts exist and the user did NOT specify which to send from, you MUST ask the user to choose an account before drafting. Do NOT guess or pick a default — sending from the wrong account is a serious mistake. (4) Call email_draft with resolved from and to. (5) Show the FULL preview (From, To, Subject, Body) to the user. (6) Wait for explicit approval before calling email_send. Body supports markdown: **bold**, *italic*, # headings, - bullet points.',
     inputSchema: {
       type: 'object',
       properties: {
         from: { type: 'string', description: 'Sender email address. Must be a registered account. Use email_list_accounts to find available accounts.' },
         to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
         subject: { type: 'string' },
-        body: { type: 'string', description: 'Email body. Supports markdown: **bold**, *italic*, # headings, - bullet points.' },
+        body: { type: 'string', description: 'Email body. Must use standard email format: greeting (e.g. "Hi [Name],"), body paragraphs, and sign-off (e.g. "Best, [Sender]") — unless the user explicitly requests a different style. Default to plain text. If the user requests formatting (bold, larger text, colors, etc.), use HTML tags directly in the body. Avoid markdown syntax, special dashes (—), or non-ASCII characters that may render as garbled text — use plain equivalents instead.' },
       },
       required: ['from', 'to', 'subject', 'body'],
     },
@@ -98,7 +98,7 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'email_list_accounts',
-    description: 'List all registered email accounts',
+    description: 'List all registered email accounts. Output format: nickname <email> (provider). When presenting accounts to the user, preserve this format.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
@@ -256,10 +256,11 @@ export async function handleTool(
     }
 
     case 'email_list_accounts': {
-      return JSON.stringify(
-        listAccounts(config).map(({ nickname, email, provider }) => ({ nickname, email, provider })),
-        null, 2
+      const accounts = listAccounts(config);
+      const lines = accounts.map(({ nickname, email, provider }) =>
+        `${nickname} <${email}> (${provider})`
       );
+      return lines.join('\n');
     }
 
     case 'email_lookup_contact': {
