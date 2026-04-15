@@ -2,6 +2,7 @@ import { program } from 'commander';
 import { select, input } from '@inquirer/prompts';
 import { loadConfig, saveConfig } from '../src/config';
 import { runGmailOAuthFlow } from '../src/auth/oauth-gmail';
+import { runOutlookOAuthFlow } from '../src/auth/oauth-outlook';
 
 program
   .option('--provider <provider>', 'gmail | outlook | imap')
@@ -24,7 +25,7 @@ async function main() {
     message: 'Which email provider?',
     choices: [
       { name: 'Gmail', value: 'gmail' },
-      { name: 'Outlook (coming soon)', value: 'outlook' },
+      { name: 'Outlook', value: 'outlook' },
       { name: 'IMAP / Yahoo / Fastmail (coming soon)', value: 'imap' },
     ],
   });
@@ -33,6 +34,8 @@ async function main() {
 
   if (provider === 'gmail') {
     email = await runGmailOAuthFlow();
+  } else if (provider === 'outlook') {
+    email = await runOutlookOAuthFlow();
   } else {
     console.error(`${provider} support is not yet implemented.`);
     process.exit(1);
@@ -44,7 +47,7 @@ async function main() {
   });
 
   const config = loadConfig();
-  config.accounts[nickname] = { email, provider: 'gmail' };
+  config.accounts[nickname] = { email, provider: provider as 'gmail' | 'outlook' };
   saveConfig(config);
 
   console.log(`\nAccount registered: ${nickname} (${email})`);
