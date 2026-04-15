@@ -3,8 +3,8 @@ import http from 'http';
 import { URL } from 'url';
 import open from 'open';
 import { readFileSync } from 'fs';
-import path from 'path';
 import { getToken, setToken } from './keychain';
+import { getCredentialsPath } from '../paths';
 
 const REDIRECT_URI = 'http://localhost:3001/oauth/callback';
 const SCOPES = [
@@ -18,7 +18,7 @@ interface GmailCredentialsFile {
 }
 
 function loadCredentials(): { clientId: string; clientSecret: string } {
-  const credPath = path.join(__dirname, '../../credentials/gmail.json');
+  const credPath = getCredentialsPath('gmail');
   const file = JSON.parse(readFileSync(credPath, 'utf-8')) as GmailCredentialsFile;
   return { clientId: file.installed.client_id, clientSecret: file.installed.client_secret };
 }

@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
-import path from 'path';
 import http from 'http';
+import { getCredentialsPath } from '../paths';
 import { URL } from 'url';
 import open from 'open';
 import { getToken, setToken } from './keychain';
@@ -22,7 +22,7 @@ interface TokenResponse {
 }
 
 function loadCredentials(): { clientId: string; clientSecret: string } {
-  const credPath = path.join(__dirname, '../../credentials/outlook.json');
+  const credPath = getCredentialsPath('outlook');
   const file = JSON.parse(readFileSync(credPath, 'utf-8')) as OutlookCredentialsFile;
   return { clientId: file.client_id, clientSecret: file.client_secret };
 }
