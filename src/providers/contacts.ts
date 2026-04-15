@@ -31,13 +31,16 @@ async function gmailLookupContact(email: string, query: string): Promise<Contact
     const person = result.person;
     if (!person) continue;
     const name = person.names?.[0]?.displayName ?? '';
-    for (const e of person.emailAddresses ?? []) {
+    const emails = person.emailAddresses ?? [];
+    for (const e of emails) {
       if (e.value) results.push({ name, email: e.value, source: 'contacts' });
     }
   }
 
+  // Try Google Contacts first
   if (results.length > 0) return results;
 
+  // Fallback: search email history for this person
   const gmail = google.gmail({ version: 'v1', auth });
   const searchRes = await gmail.users.messages.list({ userId: 'me', q: query, maxResults: 10 });
 
@@ -56,8 +59,9 @@ async function gmailLookupContact(email: string, query: string): Promise<Contact
         const emailAddr = match[2].trim().toLowerCase();
         if (emailAddr === email.toLowerCase()) continue;
         if (/^(no-?reply|noreply|notifications?|mailer-daemon|postmaster)@/i.test(emailAddr)) continue;
-        if (/@(linkedin\.com|zoom\.us|glassdoor\.com|github\.com|google\.com|googlemail\.com)$/i.test(emailAddr) && !emailAddr.includes(query.toLowerCase())) continue;
-        if ((name.toLowerCase().includes(query.toLowerCase()) || emailAddr.includes(query.toLowerCase())) && !seen.has(emailAddr)) {
+        const queryLower = query.toLowerCase();
+        if (/@(linkedin\.com|zoom\.us|glassdoor\.com|github\.com|google\.com|googlemail\.com)$/i.test(emailAddr) && !emailAddr.includes(queryLower)) continue;
+        if ((name.toLowerCase().includes(queryLower) || emailAddr.includes(queryLower)) && !seen.has(emailAddr)) {
           seen.add(emailAddr);
           results.push({ name: name || emailAddr, email: emailAddr, source: 'email_history' });
         }
