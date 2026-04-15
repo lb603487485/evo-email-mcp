@@ -17,6 +17,14 @@ export interface ContactFields {
   title?: string;
 }
 
+export interface UpdateContactFields {
+  query: string;  // name or email to find the contact
+  name?: string;
+  phone?: string;
+  company?: string;
+  title?: string;
+}
+
 type GraphEmailAddress = { emailAddress: { name?: string; address: string } };
 
 export async function lookupContact(acc: AccountConfig, query: string): Promise<Contact[]> {
@@ -29,7 +37,7 @@ export async function createContact(acc: AccountConfig, fields: ContactFields): 
   return gmailCreateContact(acc.email, fields);
 }
 
-export async function updateContact(acc: AccountConfig, fields: ContactFields): Promise<void> {
+export async function updateContact(acc: AccountConfig, fields: UpdateContactFields): Promise<void> {
   if (acc.provider === 'outlook') return outlookUpdateContact(acc.email, fields);
   return gmailUpdateContact(acc.email, fields);
 }
@@ -106,28 +114,43 @@ async function gmailCreateContact(accountEmail: string, fields: ContactFields): 
   await people.people.createContact({ requestBody });
 }
 
-async function gmailUpdateContact(accountEmail: string, fields: ContactFields): Promise<void> {
+async function gmailUpdateContact(accountEmail: string, fields: UpdateContactFields): Promise<void> {
   const auth = await getGmailAuthClient(accountEmail);
   const people = google.people({ version: 'v1', auth });
 
-  // Find contact by email
-  const searchRes = await people.people.searchContacts({
-    query: fields.email,
-    readMask: 'names,emailAddresses',
-    pageSize: 10,
-  });
-
+  // Find contact by name or email using connections.list
+  const queryLower = fields.query.toLowerCase();
+  const isEmail = fields.query.includes('@');
   let resourceName: string | undefined;
-  for (const result of searchRes.data.results ?? []) {
-    const emails = result.person?.emailAddresses ?? [];
-    if (emails.some(e => e.value?.toLowerCase() === fields.email.toLowerCase())) {
-      resourceName = result.person?.resourceName ?? undefined;
-      break;
+  let matchedEmail: string | undefined;
+  let nextPageToken: string | undefined;
+  while (!resourceName) {
+    const listRes = await people.people.connections.list({
+      resourceName: 'people/me',
+      personFields: 'names,emailAddresses',
+      pageSize: 100,
+      pageToken: nextPageToken,
+    });
+    for (const conn of listRes.data.connections ?? []) {
+      const emails = conn.emailAddresses ?? [];
+      const names = conn.names ?? [];
+      const emailMatch = emails.some(e => e.value?.toLowerCase() === queryLower);
+      const nameMatch = names.some(n =>
+        n.displayName?.toLowerCase().includes(queryLower) ||
+        n.givenName?.toLowerCase().includes(queryLower)
+      );
+      if (emailMatch || nameMatch) {
+        resourceName = conn.resourceName ?? undefined;
+        matchedEmail = emails[0]?.value ?? undefined;
+        break;
+      }
     }
+    nextPageToken = listRes.data.nextPageToken ?? undefined;
+    if (!nextPageToken) break;
   }
 
   if (!resourceName) {
-    throw new Error(`No contact found with email ${fields.email}. Use email_create_contact instead.`);
+    throw new Error(`No contact found matching "${fields.query}". Use email_create_contact instead.`);
   }
 
   // Get current contact to retrieve etag
@@ -148,9 +171,10 @@ async function gmailUpdateContact(accountEmail: string, fields: ContactFields): 
     updatePersonFields.push('phoneNumbers');
   }
   if (fields.company || fields.title) {
+    const currentOrg = current.data.organizations?.[0] ?? {};
     requestBody.organizations = [{
-      name: fields.company,
-      title: fields.title,
+      name: fields.company ?? currentOrg.name,
+      title: fields.title ?? currentOrg.title,
     }];
     updatePersonFields.push('organizations');
   }
@@ -218,6 +242,7 @@ async function outlookCreateContact(accountEmail: string, fields: ContactFields)
 
   const body: any = {
     givenName: fields.name,
+    displayName: fields.name,
     emailAddresses: [{ address: fields.email, name: fields.name ?? fields.email }],
   };
   if (fields.phone) body.businessPhones = [fields.phone];
@@ -236,29 +261,34 @@ async function outlookCreateContact(accountEmail: string, fields: ContactFields)
   if (!res.ok) throw new Error(`Create contact failed: ${await res.text()}`);
 }
 
-async function outlookUpdateContact(accountEmail: string, fields: ContactFields): Promise<void> {
+async function outlookUpdateContact(accountEmail: string, fields: UpdateContactFields): Promise<void> {
   const { accessToken } = await getOutlookAuthClient(accountEmail);
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
   };
 
-  // Find contact by email
-  const safeEmail = fields.email.replace(/'/g, "''");
-  const searchRes = await fetch(
-    `https://graph.microsoft.com/v1.0/me/contacts?$filter=emailAddresses/any(e:e/address eq '${safeEmail}')&$top=1`,
-    { headers }
-  );
+  // Find contact by name or email
+  const isEmail = fields.query.includes('@');
+  let searchUrl: string;
+  if (isEmail) {
+    const safeEmail = fields.query.replace(/'/g, "''");
+    searchUrl = `https://graph.microsoft.com/v1.0/me/contacts?$filter=emailAddresses/any(e:e/address eq '${safeEmail}')&$top=1`;
+  } else {
+    const safeName = fields.query.replace(/'/g, "''");
+    searchUrl = `https://graph.microsoft.com/v1.0/me/contacts?$filter=startswith(givenName,'${safeName}') or startswith(surname,'${safeName}') or startswith(displayName,'${safeName}')&$top=1`;
+  }
+  const searchRes = await fetch(searchUrl, { headers });
   if (!searchRes.ok) throw new Error(`Contact search failed: ${await searchRes.text()}`);
   const searchData = await searchRes.json() as { value: Array<{ id: string }> };
 
   if (!searchData.value?.length) {
-    throw new Error(`No contact found with email ${fields.email}. Use email_create_contact instead.`);
+    throw new Error(`No contact found matching "${fields.query}". Use email_create_contact instead.`);
   }
 
   const contactId = searchData.value[0].id;
   const body: any = {};
-  if (fields.name) body.givenName = fields.name;
+  if (fields.name) { body.givenName = fields.name; body.displayName = fields.name; }
   if (fields.phone) body.businessPhones = [fields.phone];
   if (fields.company) body.companyName = fields.company;
   if (fields.title) body.jobTitle = fields.title;
