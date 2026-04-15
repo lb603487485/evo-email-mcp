@@ -219,6 +219,10 @@ export async function handleTool(
         ].join('\n');
       }
 
+      // Save draft to mailbox
+      const provider = await getProvider(fromAccount);
+      await provider.createDraft(draft);
+
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
       const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc.join(', ') : draft.cc) : '';
       const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc.join(', ') : draft.bcc) : '';
