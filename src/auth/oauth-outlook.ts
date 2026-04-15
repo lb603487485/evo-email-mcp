@@ -8,7 +8,7 @@ import { getToken, setToken } from './keychain';
 const REDIRECT_URI = 'http://localhost:3001/oauth/callback';
 const AUTH_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
 const TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
-const SCOPES = 'Mail.ReadWrite Mail.Send User.Read People.Read offline_access';
+const SCOPES = 'Mail.ReadWrite Mail.Send User.Read People.Read Contacts.ReadWrite offline_access';
 
 interface OutlookCredentialsFile {
   client_id: string;
