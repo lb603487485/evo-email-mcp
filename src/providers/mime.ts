@@ -32,13 +32,21 @@ export function buildMimeMessage(draft: Draft): string {
   const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
   const subject = encodeHeader(draft.subject);
 
+  const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc.join(', ') : draft.cc) : '';
+  const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc.join(', ') : draft.bcc) : '';
+
+  const headers = [
+    `From: ${draft.from}`,
+    `To: ${to}`,
+    ...(cc ? [`Cc: ${cc}`] : []),
+    ...(bcc ? [`Bcc: ${bcc}`] : []),
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+  ];
+
   if (!isHtml(draft.body)) {
-    // Plain text — send as-is
     const mime = [
-      `From: ${draft.from}`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      `MIME-Version: 1.0`,
+      ...headers,
       `Content-Type: text/plain; charset=UTF-8`,
       ``,
       draft.body,
@@ -51,10 +59,7 @@ export function buildMimeMessage(draft: Draft): string {
   const plainText = stripHtml(draft.body);
 
   const mime = [
-    `From: ${draft.from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    `MIME-Version: 1.0`,
+    ...headers,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     ``,
     `--${boundary}`,

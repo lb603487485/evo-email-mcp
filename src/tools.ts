@@ -39,6 +39,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
       properties: {
         from: { type: 'string', description: 'Sender email address. Must be a registered account. Use email_list_accounts to find available accounts.' },
         to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+        cc: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'CC recipients (optional)' },
+        bcc: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'BCC recipients (optional)' },
         subject: { type: 'string' },
         body: { type: 'string', description: 'Email body. Must use standard email format: greeting (e.g. "Hi [Name],"), body paragraphs, and sign-off (e.g. "Best, [Sender]") — unless the user explicitly requests a different style. Default to plain text. If the user requests formatting (bold, larger text, colors, etc.), use HTML tags directly in the body. Avoid markdown syntax, special dashes (—), or non-ASCII characters that may render as garbled text — use plain equivalents instead.' },
       },
@@ -53,6 +55,8 @@ export const TOOL_DEFINITIONS: Tool[] = [
       properties: {
         from: { type: 'string' },
         to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+        cc: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'CC recipients (optional)' },
+        bcc: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }], description: 'BCC recipients (optional)' },
         subject: { type: 'string' },
         body: { type: 'string' },
       },
@@ -184,6 +188,8 @@ export async function handleTool(
       }
 
       const to = Array.isArray(draft.to) ? draft.to.join(', ') : draft.to;
+      const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc.join(', ') : draft.cc) : '';
+      const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc.join(', ') : draft.bcc) : '';
 
       // Register this draft as previewed
       approvedDrafts.add(draftKey(draft.from, draft.to, draft.subject));
@@ -195,6 +201,8 @@ export async function handleTool(
         '',
         `From:    ${draft.from} (${fromAccount.nickname})`,
         `To:      ${to}`,
+        ...(cc ? [`Cc:      ${cc}`] : []),
+        ...(bcc ? [`Bcc:     ${bcc}`] : []),
         `Subject: ${draft.subject}`,
         '',
         '----------------------------------------',

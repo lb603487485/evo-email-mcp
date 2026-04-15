@@ -32,6 +32,8 @@ export interface Email {
 export interface Draft {
   from: string;
   to: string | string[];
+  cc?: string | string[];
+  bcc?: string | string[];
   subject: string;
   body: string;
   attachments?: string[];

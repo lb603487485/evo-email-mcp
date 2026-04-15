@@ -86,21 +86,29 @@ export class OutlookProvider implements EmailProvider {
 
   async send(draft: Draft): Promise<void> {
     const to = Array.isArray(draft.to) ? draft.to : [draft.to];
+    const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc : [draft.cc]) : [];
+    const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc : [draft.bcc]) : [];
     await this.graphPost('/me/sendMail', {
       message: {
         subject: draft.subject,
         body: { contentType: isHtml(draft.body) ? 'HTML' : 'Text', content: draft.body },
         toRecipients: to.map(a => ({ emailAddress: { address: a } })),
+        ...(cc.length && { ccRecipients: cc.map(a => ({ emailAddress: { address: a } })) }),
+        ...(bcc.length && { bccRecipients: bcc.map(a => ({ emailAddress: { address: a } })) }),
       },
     });
   }
 
   async createDraft(draft: Draft): Promise<Draft> {
     const to = Array.isArray(draft.to) ? draft.to : [draft.to];
+    const cc = draft.cc ? (Array.isArray(draft.cc) ? draft.cc : [draft.cc]) : [];
+    const bcc = draft.bcc ? (Array.isArray(draft.bcc) ? draft.bcc : [draft.bcc]) : [];
     await this.graphPost('/me/messages', {
       subject: draft.subject,
       body: { contentType: isHtml(draft.body) ? 'HTML' : 'Text', content: draft.body },
       toRecipients: to.map(a => ({ emailAddress: { address: a } })),
+      ...(cc.length && { ccRecipients: cc.map(a => ({ emailAddress: { address: a } })) }),
+      ...(bcc.length && { bccRecipients: bcc.map(a => ({ emailAddress: { address: a } })) }),
     });
     return draft;
   }
