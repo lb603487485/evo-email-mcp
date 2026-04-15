@@ -48,6 +48,7 @@ async function main() {
   saveConfig(config);
 
   console.log(`\nAccount registered: ${nickname} (${email})`);
+  process.exit(0);
 }
 
 main().catch(err => {
