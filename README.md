@@ -16,7 +16,7 @@ npm run build
 ### 1. Google Cloud Console (one-time)
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a project, enable Gmail API
+2. Create a project, enable **Gmail API** and **People API**
 3. Create OAuth credentials (Desktop app)
 4. Download JSON -> save as `credentials/gmail.json`
 
@@ -65,6 +65,7 @@ Edit `config.json` in the project root. Changes take effect immediately.
 - `list_labels` - list Gmail labels
 - `apply_label` - add/remove labels
 - `download_attachment` - save attachment locally
+- `lookup_contact` - find email address by person name
 - `list_accounts` - show registered accounts
 - `set_config` - change settings via Claude
 
