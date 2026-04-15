@@ -71,7 +71,7 @@ After building, register the server in:
 - **Claude Code** — `~/.claude/settings.json` under `mcpServers`
 - **Claude Desktop** — `~/Library/Application Support/Claude/claude_desktop_config.json` under `mcpServers`
 
-Both point to the same compiled binary: `node /Users/evolin1/Desktop/AICoding/evo-email-mcp/dist/server.js`
+Both point to the compiled binary: `node /path/to/evo-email-mcp/dist/server.js`
 
 ## Platform Constraint
 

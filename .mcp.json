@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "email": {
-      "command": "node",
-      "args": ["/Users/evolin1/Desktop/AICoding/evo-email-mcp/dist/server.js"]
-    }
-  }
-}
