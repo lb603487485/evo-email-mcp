@@ -1,19 +1,24 @@
-import { describe, it, expect } from 'vitest';
-import { writeFileSync } from 'fs';
-import { loadConfig, getAccount, listAccounts } from './config';
-
-const TEST_CONFIG = '/tmp/email-mcp-test-config.json';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getAccount, listAccounts } from './config';
 
 describe('loadConfig', () => {
-  it('parses config from file', () => {
-    writeFileSync(TEST_CONFIG, JSON.stringify({
-      sendMode: 'auto',
-      defaultMaxResults: 10,
-      accounts: { work: { email: 'work@gmail.com', provider: 'gmail' } },
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('returns default config when file does not exist', async () => {
+    vi.doMock('./paths', () => ({
+      getConfigPath: () => '/tmp/evo-email-mcp-nonexistent-test.json',
+      ensureConfigHome: vi.fn(),
     }));
-    const config = loadConfig(TEST_CONFIG);
-    expect(config.sendMode).toBe('auto');
-    expect(config.accounts.work.email).toBe('work@gmail.com');
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return { ...actual, existsSync: () => false, writeFileSync: vi.fn() };
+    });
+    const { loadConfig } = await import('./config');
+    const config = loadConfig();
+    expect(config.sendMode).toBe('confirm');
+    expect(config.accounts).toEqual({});
   });
 });
 

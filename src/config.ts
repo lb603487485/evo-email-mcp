@@ -1,15 +1,26 @@
-import { readFileSync, writeFileSync } from 'fs';
-import path from 'path';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { AppConfig, AccountConfig } from './providers/interface';
+import { getConfigPath, ensureConfigHome } from './paths';
 
-const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
+const DEFAULT_CONFIG: AppConfig = {
+  sendMode: 'confirm',
+  defaultMaxResults: 20,
+  accounts: {},
+};
 
-export function loadConfig(configPath = CONFIG_PATH): AppConfig {
+export function loadConfig(): AppConfig {
+  const configPath = getConfigPath();
+  if (!existsSync(configPath)) {
+    ensureConfigHome();
+    writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), 'utf-8');
+    return { ...DEFAULT_CONFIG };
+  }
   return JSON.parse(readFileSync(configPath, 'utf-8')) as AppConfig;
 }
 
-export function saveConfig(config: AppConfig, configPath = CONFIG_PATH): void {
-  writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+export function saveConfig(config: AppConfig): void {
+  ensureConfigHome();
+  writeFileSync(getConfigPath(), JSON.stringify(config, null, 2), 'utf-8');
 }
 
 export function getAccount(config: AppConfig, identifier: string): AccountConfig {
