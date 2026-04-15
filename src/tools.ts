@@ -33,21 +33,21 @@ export const TOOL_DEFINITIONS: Tool[] = [
   },
   {
     name: 'draft_email',
-    description: 'Preview a draft before sending. Always call this before send_email when sendMode is confirm.',
+    description: 'Preview a draft before sending. REQUIRED before send_email in confirm mode. Workflow: (1) If user says a name instead of email, call lookup_contact first. (2) If user says "my work/personal/school account", match to account nickname via list_accounts. If only one account exists, use it automatically. (3) Call draft_email with resolved from and to. (4) Show the FULL preview (From, To, Subject, Body) to the user. (5) Wait for explicit approval before calling send_email. Body supports markdown: **bold**, *italic*, # headings, - bullet points.',
     inputSchema: {
       type: 'object',
       properties: {
-        from: { type: 'string' },
+        from: { type: 'string', description: 'Sender email address. Must be a registered account. Use list_accounts to find available accounts.' },
         to: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
         subject: { type: 'string' },
-        body: { type: 'string' },
+        body: { type: 'string', description: 'Email body. Supports markdown: **bold**, *italic*, # headings, - bullet points.' },
       },
       required: ['from', 'to', 'subject', 'body'],
     },
   },
   {
     name: 'send_email',
-    description: 'Send an email. In confirm mode, call draft_email first and wait for user approval.',
+    description: 'Send an email. In confirm mode, draft_email MUST be called first and user MUST explicitly approve. Do NOT call this without showing the full draft preview and receiving user confirmation.',
     inputSchema: {
       type: 'object',
       properties: {
