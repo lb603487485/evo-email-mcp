@@ -1,6 +1,6 @@
 node_modules/
 dist/
-credentials/*.json
+credentials/
 .env
 .claude/
 .worktrees/
