@@ -34,6 +34,7 @@
 ### Quality of Life
 - [ ] Reply/forward support (thread awareness)
 - [ ] Attachment sending (not just downloading)
+- [ ] Scheduled send (send at a specified date/time)
 
 ## Design Decisions
 
