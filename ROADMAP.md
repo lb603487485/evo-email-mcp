@@ -1,42 +1,37 @@
 # Roadmap
 
-## Completed (Phase 1 - Gmail)
+## Completed
 
+### v1.0.0 — Gmail Provider
 - Gmail provider (search, read, send, labels, attachments)
 - Multi-account support with nicknames
 - OAuth token storage in macOS Keychain
-- HTML emails with Gmail-native template
-- Markdown support in email body (bold, italic, headings, bullets)
+- HTML emails with auto-detection (plain text default)
 - Non-ASCII subject encoding (Chinese, Japanese, etc.)
 - Primary inbox default with category filter
 - Draft-before-send gate in confirm mode
 - Contact lookup via Google People API with email history fallback
-- Provider-specific HTML templates (Gmail, Outlook stub, IMAP stub)
-- add-account CLI with flags and interactive mode
+- add-account / remove-account CLI
 
-## In Progress (Phase 1.5 - Dogfooding)
+### v1.1.0 — Outlook + Permissions + Contacts Write
+- Outlook provider (Microsoft Graph API, device code OAuth)
+- Per-category permissions system (emailWrite, contactWrite, labelWrite × auto/confirm/blocked)
+- Server-enforced permission middleware
+- Contact create/update for Gmail (People API) and Outlook (Graph)
+- Gmail contact update merges with existing field values
+- Old sendMode config auto-migrated to permissions on first load
 
-- [ ] Register MCP with Claude Code globally
-- [ ] Use as primary email tool for daily work
-- [ ] Collect friction points and missing features
-- [ ] Fix issues before building Phase 2
+## Paused
 
-## Planned
-
-### Phase 2: Multi-provider
-
-- [ ] Outlook provider with Outlook HTML template
-- [ ] IMAP provider with default HTML template
+### IMAP Provider
+- [ ] Generic IMAP provider (works with any email provider)
 - [ ] Provider auto-detection from email domain
 
-### Phase 2.5: Contacts
+### Calendar Read Access
+- [ ] Google Calendar API read-only
+- [ ] Microsoft Graph calendar read-only
 
-- [ ] Write access to Google Contacts (create/update)
-- [ ] Auto-save new recipients as contacts
-
-### Phase 3: Quality of life
-
-- [ ] Custom email signatures per account
+### Quality of Life
 - [ ] Reply/forward support (thread awareness)
 - [ ] Attachment sending (not just downloading)
 
@@ -45,9 +40,9 @@
 | Decision | Rationale | Date |
 |----------|-----------|------|
 | macOS Keychain only | Cross-platform out of scope for v1 | 2026-04-13 |
-| People API read-only | Write access useful but not core focus; add later | 2026-04-15 |
-| Gmail HTML template as default | Match native Gmail format so emails look normal | 2026-04-15 |
-| Provider-specific templates | Gmail/Outlook/IMAP each have different native formats | 2026-04-15 |
+| Plain text default, no HTML templates | Agent decides formatting; no hardcoded templates | 2026-04-15 |
+| Server-enforced permissions | Cannot be bypassed by any client | 2026-04-15 |
+| No destructive operations | No delete for emails/drafts/contacts; guide to web UI | 2026-04-15 |
 | Draft gate enforced server-side | Prevent sends without preview in confirm mode | 2026-04-15 |
 | Primary inbox by default | Filter out promotions/social unless explicitly requested | 2026-04-15 |
 | Contact lookup with email history fallback | Google Contacts often empty; email history is more reliable | 2026-04-15 |

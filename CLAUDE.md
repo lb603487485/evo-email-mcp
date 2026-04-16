@@ -4,22 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-This project is in the **design phase** — no code has been written yet. The full spec lives at `docs/superpowers/specs/2026-04-13-evo-email-mcp-design.md`.
-
-**Before writing any code, read the spec.** It is the authoritative source for architecture, tool signatures, send modes, security model, and out-of-scope decisions. Do not infer or invent — check the spec first.
+v1.1.0 — published to npm, 44 unit tests passing, clean build.
 
 ## What This Is
 
-A local TypeScript/Node.js MCP server that gives Claude access to multiple Gmail accounts simultaneously. Compatible with both Claude Code and Claude Desktop.
+A local TypeScript/Node.js MCP server that gives Claude access to multiple email accounts (Gmail + Outlook). Compatible with both Claude Code and Claude Desktop.
 
-## Planned Commands
-
-Once implemented, the development workflow will be:
+## Commands
 
 ```bash
 npm run build          # Compile TypeScript → dist/
 npm run dev            # Watch mode (tsc --watch)
-npm run add-account    # CLI: OAuth-authenticate a new Gmail account → saves token to macOS Keychain
+npm run test           # Run tests (vitest)
+npm run add-account    # CLI: OAuth-authenticate a new account → saves token to macOS Keychain
+npm run remove-account # CLI: Remove an account and its stored token
 ```
 
 The server runs as a child process launched by Claude Code / Claude Desktop — there is no standalone `npm start`.
@@ -30,28 +28,36 @@ The server runs as a child process launched by Claude Code / Claude Desktop — 
 src/
 ├── server.ts          # MCP entry point — registers tools and starts the server
 ├── tools.ts           # MCP tool definitions exposed to Claude
-├── accounts.ts        # Account registry (list, add, remove, nickname resolution)
+├── config.ts          # Config loading + hot-reload (config.json)
+├── factory.ts         # Provider factory — instantiates Gmail or Outlook based on account type
+├── paths.ts           # Resolved paths for config and accounts files
 ├── auth/
-│   ├── oauth.ts       # Google OAuth2 flow
-│   └── keychain.ts    # macOS Keychain read/write (one entry per account: evo-email-mcp:<email>)
-└── gmail/
-    ├── search.ts      # Search across one or all accounts, merge results
-    ├── send.ts        # Send with draft-preview and send-mode enforcement
-    ├── labels.ts      # Label management
-    └── attachments.ts # Attachment download
-scripts/
-└── add-account.ts     # Standalone CLI for the OAuth onboarding flow
+│   ├── keychain.ts    # macOS Keychain read/write (one entry per account)
+│   ├── oauth-gmail.ts # Google OAuth2 flow
+│   └── oauth-outlook.ts # Microsoft OAuth2 flow (device code grant)
+├── providers/
+│   ├── interface.ts   # Provider interface — all providers implement this
+│   ├── gmail.ts       # Gmail provider (Google APIs)
+│   ├── outlook.ts     # Outlook provider (Microsoft Graph API)
+│   ├── contacts.ts    # Contacts operations (Gmail People API + Outlook Graph)
+│   └── mime.ts        # MIME message construction, auto-detects HTML
+└── cli/
+    ├── add-account.ts # OAuth onboarding CLI
+    └── remove-account.ts # Account removal CLI
 config.json            # Runtime settings (no credentials — hot-reloaded per request)
 ```
 
 ## Key Design Decisions
 
-**Security:** OAuth tokens live exclusively in macOS Keychain, keyed as `evo-email-mcp:<email@gmail.com>`. `config.json` never contains credentials and is safe to commit.
+**Security:** OAuth tokens live exclusively in macOS Keychain, keyed as `evo-email-mcp/<email>`. `config.json` never contains credentials and is safe to commit.
 
-**Send confirmation modes** (`config.json` → `sendMode`):
-- `confirm` (default) — Claude calls `draft_email` first, user approves, then `send_email`
-- `auto` — sends immediately
-- `blocked` — read-only, sending disabled
+**Permissions system** (`config.json` → `permissions`):
+Each write category (`emailWrite`, `contactWrite`, `labelWrite`) has a level:
+- `auto` — executes immediately
+- `confirm` (default) — requires confirmation (call the same tool twice)
+- `blocked` — action is disabled
+
+Server-enforced middleware — cannot be bypassed by any client.
 
 `config.json` is hot-reloaded on every request; no server restart needed when the file changes.
 
@@ -59,10 +65,14 @@ config.json            # Runtime settings (no credentials — hot-reloaded per r
 
 **Multi-account scoping:** Tools accept an optional `account` parameter (email or nickname). Omitting it runs across all registered accounts with merged results.
 
-## MCP Tools
+**No destructive operations:** The server does not support deleting emails, drafts, or contacts. Users are guided to the web UI for deletion.
 
-Core: `search_emails`, `send_email`, `get_email`, `draft_email`  
-Secondary: `list_labels`, `apply_label`, `download_attachment`, `list_accounts`, `set_config`
+## MCP Tools (12 total, all prefixed `email_`)
+
+Core: `email_search`, `email_get`, `email_draft`, `email_send`
+Contacts: `email_lookup_contact`, `email_create_contact`, `email_update_contact`
+Labels: `email_list_labels`, `email_apply_label`
+Other: `email_download_attachment`, `email_list_accounts`, `email_set_config`
 
 ## Integration
 
