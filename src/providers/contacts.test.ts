@@ -12,6 +12,7 @@ const mockSearchContacts = vi.fn().mockResolvedValue({ data: { results: [] } });
 const mockCreateContact = vi.fn().mockResolvedValue({});
 const mockUpdateContact = vi.fn().mockResolvedValue({});
 const mockGet = vi.fn().mockResolvedValue({ data: { etag: 'etag123' } });
+const mockConnectionsList = vi.fn().mockResolvedValue({ data: { connections: [] } });
 
 vi.mock('googleapis', () => ({
   google: {
@@ -21,6 +22,7 @@ vi.mock('googleapis', () => ({
         createContact: mockCreateContact,
         updateContact: mockUpdateContact,
         get: mockGet,
+        connections: { list: mockConnectionsList },
       },
     })),
     gmail: vi.fn(() => ({
@@ -132,23 +134,40 @@ describe('createContact', () => {
 describe('updateContact', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('calls Gmail People API searchContacts then updateContact for gmail accounts', async () => {
-    mockSearchContacts.mockResolvedValueOnce({
+  it('finds contact by email via connections.list and updates for gmail accounts', async () => {
+    mockConnectionsList.mockResolvedValueOnce({
       data: {
-        results: [{
-          person: {
-            resourceName: 'people/123',
-            emailAddresses: [{ value: 'alice@example.com' }],
-          },
+        connections: [{
+          resourceName: 'people/123',
+          names: [{ displayName: 'Alice', givenName: 'Alice' }],
+          emailAddresses: [{ value: 'alice@example.com' }],
         }],
       },
     });
 
     await updateContact({ email: 'work@gmail.com', provider: 'gmail' }, {
-      email: 'alice@example.com',
+      query: 'alice@example.com',
       name: 'Alice Updated',
     });
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('finds contact by name via connections.list and updates for gmail accounts', async () => {
+    mockConnectionsList.mockResolvedValueOnce({
+      data: {
+        connections: [{
+          resourceName: 'people/456',
+          names: [{ displayName: 'Bob Smith', givenName: 'Bob' }],
+          emailAddresses: [{ value: 'bob@example.com' }],
+        }],
+      },
+    });
+
+    await updateContact({ email: 'work@gmail.com', provider: 'gmail' }, {
+      query: 'Bob',
+      title: 'CTO',
+    });
+    expect(mockUpdateContact).toHaveBeenCalled();
   });
 
   it('calls Graph API PATCH /me/contacts/{id} for outlook accounts', async () => {
@@ -156,7 +175,7 @@ describe('updateContact', () => {
       .mockResolvedValueOnce(mockOk({ value: [{ id: 'contact-123' }] })) // search
       .mockResolvedValueOnce(mockOk({})); // patch
     await updateContact({ email: 'me@outlook.com', provider: 'outlook' }, {
-      email: 'alice@example.com',
+      query: 'alice@example.com',
       name: 'Alice Updated',
     });
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -166,13 +185,25 @@ describe('updateContact', () => {
     );
   });
 
+  it('finds outlook contact by name', async () => {
+    mockFetch
+      .mockResolvedValueOnce(mockOk({ value: [{ id: 'contact-456' }] })) // search by name
+      .mockResolvedValueOnce(mockOk({})); // patch
+    await updateContact({ email: 'me@outlook.com', provider: 'outlook' }, {
+      query: 'Alice',
+      title: 'VP',
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch.mock.calls[0][0]).toContain('displayName');
+  });
+
   it('throws when no contact found for outlook update', async () => {
     mockFetch.mockResolvedValueOnce(mockOk({ value: [] }));
     await expect(
       updateContact({ email: 'me@outlook.com', provider: 'outlook' }, {
-        email: 'unknown@example.com',
+        query: 'unknown@example.com',
         name: 'Nobody',
       })
-    ).rejects.toThrow('No contact found with email unknown@example.com');
+    ).rejects.toThrow('No contact found matching "unknown@example.com"');
   });
 });
