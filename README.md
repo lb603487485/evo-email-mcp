@@ -73,16 +73,10 @@ evo-email-remove-account --nickname work
 
 ### 3. Register with Claude
 
-**Claude Code** -- add to `~/.claude/settings.local.json`:
+**Claude Code:**
 
-```json
-{
-  "mcpServers": {
-    "email": {
-      "command": "evo-email-mcp"
-    }
-  }
-}
+```bash
+claude mcp add --scope user --transport stdio email -- evo-email-mcp
 ```
 
 **Claude Desktop** -- add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
@@ -91,11 +85,14 @@ evo-email-remove-account --nickname work
 {
   "mcpServers": {
     "email": {
-      "command": "evo-email-mcp"
+      "command": "npx",
+      "args": ["-y", "evo-email-mcp"]
     }
   }
 }
 ```
+
+Restart Claude Desktop after saving.
 
 ## Configuration
 
